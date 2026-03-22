@@ -1,0 +1,24 @@
+# EnergyPlus Agent 配置文件
+# 说明：api_key 可通过环境变量 LLM_API_KEY 覆盖
+
+llm:
+  base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+  api_key: "sk-658a7eb51b4543c99f8d401af22688cb"           # 生产环境建议通过 LLM_API_KEY 环境变量设置
+  model: "qwen3-max"
+  timeout_sec: 600
+  temperature: 0.2      # 低温度保证 YAML 生成的确定性
+
+mcp:
+  base_url: "http://127.0.0.1:8000"
+  timeout_sec: 60       # 普通工具调用超时
+  init_timeout_sec: 10  # 初始化连接超时
+
+log:
+  level: "debug"        # debug 级别完整记录 LLM 思考过程
+  file: "logs/agent.log"
+  console: true         # 同时输出到控制台
+
+session:
+  output_dir: "output"  # 生成的 YAML / IDF 文件输出目录
+  max_react_iter: 15    # ReAct 最大迭代次数
+  max_heal_iter: 5      # Self-Healing 最大修复次数

@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(file \"d:\\\\TryAgent\\\\energyplus-agent\\\\data\"/*)",
+      "Bash(wc -l \"d:\\\\TryAgent\\\\energyplus-agent\\\\data\"/*)",
+      "Bash(wc -l /d/TryAgent/energyplus-agent/internal/intent/*.go)",
+      "Read(//c/Users/Administrator/.claude//**)",
+      "Read(//c/Users/Administrator/.claude/**)",
+      "Bash(grep -r skill d:/TryAgent/energyplus-agent --include=*.py --include=*.yaml --include=*.yml --include=*.json)",
+      "Bash(find /c/Users/Administrator/.claude -type f -name *.json -o -name *.yaml -o -name *.yml)",
+      "Read(//d/TryAgent/**)",
+      "Bash(grep -E '\\\\.\\(md|txt\\)$')",
+      "Bash(grep -r \"reference\\\\|script\" d:/TryAgent/EnergyPlus-Agent-try1/.venv/Lib/site-packages/anthropic --include=*.py -l)",
+      "WebSearch",
+      "WebFetch(domain:www.anthropic.com)"
+    ]
+  }
+}
