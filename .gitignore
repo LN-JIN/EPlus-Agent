@@ -12,6 +12,9 @@ logs/
 # 文档目录
 docs/
 
+# Claude 本地配置
+.claude/
+
 # 系统文件
 .DS_Store
 Thumbs.db
