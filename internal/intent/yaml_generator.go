@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"energyplus-agent/internal/fault"
 	"energyplus-agent/internal/llm"
 	"energyplus-agent/internal/logger"
 	"energyplus-agent/internal/react"
@@ -31,6 +32,7 @@ type generateState struct {
 
 // GenerateYAML 根据 BuildingIntent 生成 YAML 配置文件
 // outputDir: 输出目录（文件名自动生成）
+// sessionID: 用于写 ReAct 日志（空字符串则跳过）
 // maxIter: ReAct 最大迭代次数
 // maxHealIter: Self-Healing 最大修复次数
 func GenerateYAML(
@@ -38,9 +40,10 @@ func GenerateYAML(
 	llmClient *llm.Client,
 	buildingIntent *BuildingIntent,
 	outputDir string,
+	sessionID string,
 	maxIter int,
 	maxHealIter int,
-) (string, error) {
+) (string, int, error) {
 	slog.Info("[YAML] 开始生成 YAML 配置",
 		"building", buildingIntent.Building.Name,
 		"output_dir", outputDir,
@@ -48,13 +51,46 @@ func GenerateYAML(
 
 	// 确保输出目录存在
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
-		return "", fmt.Errorf("创建输出目录失败 [%s]: %w", outputDir, err)
+		return "", 0, fmt.Errorf("创建输出目录失败 [%s]: %w", outputDir, err)
+	}
+
+	// 收集所有 ReAct 步骤（含 self-healing 轮次），函数退出时写日志
+	var allSteps []logger.ReActStep
+	if outputDir != "" && sessionID != "" {
+		defer func() {
+			if len(allSteps) == 0 {
+				return
+			}
+			logPath := filepath.Join(outputDir, "react_logs", sessionID+"_yaml_generate.md")
+			if writeErr := logger.WriteReActLog(logPath, "yaml_generate", sessionID, allSteps); writeErr != nil {
+				slog.Warn("[YAML] ReAct 日志写入失败", "err", writeErr)
+			}
+		}()
+	}
+
+	totalTokens := 0
+	appendSteps := func(r *react.Result) {
+		if r == nil {
+			return
+		}
+		totalTokens += r.TotalTokens
+		for _, s := range r.Steps {
+			allSteps = append(allSteps, logger.ReActStep{
+				Iter:        s.Iter,
+				Thought:     s.Thought,
+				Action:      s.Action,
+				ActionInput: s.ActionInput,
+				Observation: s.Observation,
+				IsFinal:     s.IsFinal,
+				FinalAnswer: s.FinalAnswer,
+			})
+		}
 	}
 
 	// 将 intent 序列化为 JSON 作为用户消息
 	intentJSON, err := json.MarshalIndent(buildingIntent, "", "  ")
 	if err != nil {
-		return "", fmt.Errorf("序列化 BuildingIntent 失败: %w", err)
+		return "", 0, fmt.Errorf("序列化 BuildingIntent 失败: %w", err)
 	}
 
 	state := &generateState{}
@@ -79,28 +115,35 @@ func GenerateYAML(
 	logger.Phase("YAML 生成", "LLM 正在根据建筑意图生成配置...")
 
 	// 第一次生成
-	_, err = agent.Run(ctx, SystemPromptYAMLGeneration, userMsg)
+	r0, err := agent.Run(ctx, BuildSystemPrompt(SystemPromptYAMLGeneration, registry), userMsg)
+	appendSteps(r0)
 	if err != nil && !state.done {
-		return "", fmt.Errorf("YAML 生成失败: %w", err)
+		return "", totalTokens, fmt.Errorf("YAML 生成失败: %w", err)
 	}
 
 	if !state.done || state.yamlContent == "" {
-		return "", fmt.Errorf("LLM 未调用 write_yaml 工具，生成失败")
+		return "", totalTokens, fmt.Errorf("LLM 未调用 write_yaml 工具，生成失败")
 	}
 
 	// 写入文件
 	yamlPath, err := writeYAMLFile(state.yamlContent, outputDir, buildingIntent.Building.Name)
 	if err != nil {
-		return "", err
+		return "", totalTokens, err
 	}
 	state.yamlPath = yamlPath
 	slog.Info("[YAML] 文件已写入", "path", yamlPath)
 
 	// Self-Healing 循环：YAML 语法验证 + 修复
+	guard := &fault.SameErrorGuard{MaxRepeat: 2}
 	for healIter := 0; healIter < maxHealIter; healIter++ {
 		validErr := validateYAMLSyntax(state.yamlContent)
 		if validErr == nil {
 			slog.Info("[YAML] 语法验证通过", "path", yamlPath)
+			break
+		}
+
+		if spinning, hint := guard.Observe(validErr.Error()); spinning {
+			slog.Warn("[YAML] 检测到修复空转，终止自愈循环", "hint", hint)
 			break
 		}
 
@@ -125,7 +168,8 @@ func GenerateYAML(
 		state.done = false
 		state.yamlContent = ""
 
-		_, healErr := agent.Run(ctx, SystemPromptYAMLGeneration, fixMsg)
+		rHeal, healErr := agent.Run(ctx, BuildSystemPrompt(SystemPromptYAMLGeneration, registry), fixMsg)
+		appendSteps(rHeal)
 		if healErr != nil && !state.done {
 			slog.Warn("[YAML] 自修复 ReAct 失败", "err", healErr)
 			break
@@ -135,14 +179,14 @@ func GenerateYAML(
 			// 更新文件
 			yamlPath, err = writeYAMLFile(state.yamlContent, outputDir, buildingIntent.Building.Name)
 			if err != nil {
-				return "", err
+				return "", totalTokens, err
 			}
 			state.yamlPath = yamlPath
 		}
 	}
 
 	slog.Info("[YAML] 生成流程完成", "path", state.yamlPath)
-	return state.yamlPath, nil
+	return state.yamlPath, totalTokens, nil
 }
 
 // registerGenerateTools 注册 YAML 生成阶段的工具

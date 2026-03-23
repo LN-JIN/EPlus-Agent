@@ -49,14 +49,20 @@ type Tool struct {
 	Function FunctionDef `json:"function"`
 }
 
+// StreamOptions 控制流式响应行为（OpenAI 扩展字段）
+type StreamOptions struct {
+	IncludeUsage bool `json:"include_usage"`
+}
+
 // ChatRequest 向 LLM 发送的请求体
 type ChatRequest struct {
-	Model       string    `json:"model"`
-	Messages    []Message `json:"messages"`
-	Tools       []Tool    `json:"tools,omitempty"`
-	Stream      bool      `json:"stream"`
-	Temperature float64   `json:"temperature,omitempty"`
-	MaxTokens   int       `json:"max_tokens,omitempty"`
+	Model         string         `json:"model"`
+	Messages      []Message      `json:"messages"`
+	Tools         []Tool         `json:"tools,omitempty"`
+	Stream        bool           `json:"stream"`
+	Temperature   float64        `json:"temperature,omitempty"`
+	MaxTokens     int            `json:"max_tokens,omitempty"`
+	StreamOptions *StreamOptions `json:"stream_options,omitempty"`
 }
 
 // Choice 非流式响应中的单个选项
@@ -102,6 +108,7 @@ type StreamChunk struct {
 	Object  string         `json:"object"`
 	Model   string         `json:"model"`
 	Choices []StreamChoice `json:"choices"`
+	Usage   *Usage         `json:"usage,omitempty"` // stream_options include_usage=true 时末尾 chunk 携带
 }
 
 // ErrorResponse LLM API 错误响应

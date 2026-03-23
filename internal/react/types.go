@@ -19,6 +19,7 @@ type Step struct {
 type Result struct {
 	Steps       []Step // 完整的推理步骤记录
 	FinalAnswer string // 最终回答
+	TotalTokens int    // 本次 ReAct 全程累计 token 消耗
 	Error       error  // 运行时错误（nil 表示成功）
 }
 

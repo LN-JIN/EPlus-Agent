@@ -88,14 +88,16 @@ func (c *Client) Chat(ctx context.Context, messages []Message, tools []Tool) (*M
 }
 
 // ChatStream 流式调用，通过 onToken 实时回调 token
+// onUsage: 流完成后回调 token 用量（传 nil 则忽略）
 // 返回的 Message 包含完整拼接后的 content 和 tool_calls
-func (c *Client) ChatStream(ctx context.Context, messages []Message, tools []Tool, onToken func(string)) (*Message, error) {
+func (c *Client) ChatStream(ctx context.Context, messages []Message, tools []Tool, onToken func(string), onUsage func(Usage)) (*Message, error) {
 	req := ChatRequest{
-		Model:       c.Model,
-		Messages:    messages,
-		Tools:       tools,
-		Stream:      true,
-		Temperature: c.Temperature,
+		Model:         c.Model,
+		Messages:      messages,
+		Tools:         tools,
+		Stream:        true,
+		Temperature:   c.Temperature,
+		StreamOptions: &StreamOptions{IncludeUsage: true},
 	}
 
 	slog.Debug("[LLM↑] 发送流式请求", "messages", len(messages), "tools", len(tools), "model", c.Model)
@@ -120,7 +122,12 @@ func (c *Client) ChatStream(ctx context.Context, messages []Message, tools []Too
 	slog.Debug("[LLM↓] 流式响应完成",
 		"content_len", len(msg.Content),
 		"tool_calls", len(msg.ToolCalls),
+		"total_tokens", result.Usage.TotalTokens,
 	)
+
+	if onUsage != nil && result.Usage.TotalTokens > 0 {
+		onUsage(result.Usage)
+	}
 
 	return msg, nil
 }

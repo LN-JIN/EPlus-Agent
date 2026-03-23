@@ -1,0 +1,63 @@
+# EnergyPlus Agent 配置文件模板
+# 使用方法：复制此文件为 config.yaml，填写必要字段
+#   cp configs/config.yaml.example configs/config.yaml
+#
+# 注意：config.yaml 包含敏感信息（API Key），已加入 .gitignore，请勿提交到版本库。
+# api_key 也可通过环境变量 LLM_API_KEY 覆盖，推荐在生产环境使用环境变量。
+
+llm:
+  base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+  # 其他兼容 OpenAI 接口的服务示例：
+  # base_url: "https://api.openai.com/v1"
+  # base_url: "http://localhost:11434/v1"   # Ollama 本地部署
+  api_key: "YOUR_API_KEY_HERE"              # 建议通过环境变量 LLM_API_KEY 设置
+  model: "qwen3-max"
+  # 其他模型示例：gpt-4o、claude-3-5-sonnet-20241022、qwen-max
+  timeout_sec: 600
+  temperature: 0.2      # 低温度保证 YAML 生成的确定性；调高可增加创造性
+
+mcp:
+  base_url: "http://127.0.0.1:8000"
+  timeout_sec: 60       # 普通工具调用超时（秒）
+  init_timeout_sec: 10  # 初始化连接超时（秒）
+
+log:
+  level: "info"         # 可选: debug / info / warn / error
+                        # debug 级别完整记录 LLM 思考过程，信息量大
+  file: "logs/agent.log"
+  console: true         # 同时输出到控制台
+  react_log: true       # 是否将 ReAct 推理步骤保存为 Markdown 文件
+  react_log_dir: "output/logs/react"
+
+session:
+  output_dir: "output"  # 生成的 YAML / IDF / 报告文件输出根目录
+  simulation_script: "/path/to/EPlus-MCP/main.py"   # EPlus-MCP CLI 脚本绝对路径
+                        # Windows 示例: "D:/TryAgent/EPlus-MCP/main.py"
+                        # Linux/Mac 示例: "/home/user/EPlus-MCP/main.py"
+  epw_path: "/path/to/weather/City.epw"              # 默认 EPW 气象文件路径
+                        # 可在命令行用 -epw 参数覆盖
+                        # EnergyPlus 官方提供各地 EPW 文件下载
+  python_path: ""       # Python 解释器路径，留空则按顺序自动探测 python → python3
+                        # Windows 示例: "C:/Python310/python.exe"
+                        # Linux/Mac 示例: "/usr/bin/python3"
+
+# 各模块独立配置（迭代次数和修复上限）
+# 通常不需要修改，除非遇到复杂建筑导致修复次数不足的情况
+modules:
+  intent:
+    max_react_iter: 15     # 意图收集 ReAct 最大迭代次数
+
+  yaml_generate:
+    max_react_iter: 15     # YAML 生成 ReAct 最大迭代次数
+    max_heal_attempts: 5   # YAML 生成失败后的自愈最大尝试次数
+
+  idf_convert:
+    max_heal_attempts: 8   # YAML→IDF 转换失败时 LLM 修复 YAML 的最大尝试次数
+
+  simulation:
+    max_fix_attempts: 10   # IDF 仿真失败时 LLM 修复 IDF 的最大尝试次数
+
+  param_analysis:
+    max_react_iter: 12     # Planner Agent ReAct 最大迭代次数
+    max_workers: 3         # 并行 Worker 最大数量（受 CPU 核数和内存限制）
+    max_fix_attempts: 3    # Worker 仿真失败时 LLM 修复 IDF 的最大尝试次数

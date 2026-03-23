@@ -243,3 +243,75 @@ func ToolResult(name string, result string) {
 	)
 	Get().Debug("[←TOOL]", "name", name, "result", preview)
 }
+
+// PhaseLabel 返回阶段日志标签字符串（供 slog.Info 使用）
+func PhaseLabel(phase string) string {
+	return "[PHASE] " + phase
+}
+
+// ── ReAct 日志持久化 ──────────────────────────────────────────────────────────
+
+// ReActStep 单次 ReAct 步骤（用于日志写入，避免 react 包依赖）
+type ReActStep struct {
+	Iter        int
+	Thought     string
+	Action      string
+	ActionInput string
+	Observation string
+	IsFinal     bool
+	FinalAnswer string
+}
+
+// TokenSummary 打印阶段 token 消耗汇总到控制台，并写入结构化日志
+func TokenSummary(phaseName string, phaseTokens int, totalTokens int) {
+	fmt.Printf("\n%s[TOKEN]%s %-22s 本阶段: %s%6d%s tokens  累计: %s%d%s tokens\n",
+		colorCyan+colorBold, colorReset,
+		phaseName,
+		colorYellow, phaseTokens, colorReset,
+		colorGray, totalTokens, colorReset,
+	)
+	Get().Info("[TOKEN] 阶段消耗",
+		"phase", phaseName,
+		"phase_tokens", phaseTokens,
+		"total_tokens", totalTokens,
+	)
+}
+
+// WriteReActLog 将 ReAct 步骤记录写入 Markdown 日志文件
+// logPath: 日志文件路径（自动创建目录）
+// phase: 阶段名称（如 "simulation"）
+// sessionID: 会话 ID
+// steps: ReAct 步骤列表
+func WriteReActLog(logPath, phase, sessionID string, steps []ReActStep) error {
+	if err := os.MkdirAll(filepath.Dir(logPath), 0o755); err != nil {
+		return fmt.Errorf("创建 ReAct 日志目录失败: %w", err)
+	}
+
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("# ReAct 日志 — %s — %s\n\n", phase, sessionID))
+
+	for _, step := range steps {
+		sb.WriteString(fmt.Sprintf("## 迭代 %d\n\n", step.Iter))
+		if step.Thought != "" {
+			sb.WriteString(fmt.Sprintf("**🤔 Thought:** %s\n\n", step.Thought))
+		}
+		if step.IsFinal {
+			sb.WriteString(fmt.Sprintf("**✅ Final Answer:** %s\n\n", step.FinalAnswer))
+		} else {
+			sb.WriteString(fmt.Sprintf("**⚡ Action:** `%s`\n\n", step.Action))
+			if step.ActionInput != "" {
+				sb.WriteString(fmt.Sprintf("**📥 Input:**\n```json\n%s\n```\n\n", step.ActionInput))
+			}
+			if step.Observation != "" {
+				obs := step.Observation
+				if len(obs) > 500 {
+					obs = obs[:500] + "\n...(truncated)"
+				}
+				sb.WriteString(fmt.Sprintf("**📤 Observation:**\n```\n%s\n```\n\n", obs))
+			}
+		}
+		sb.WriteString("---\n\n")
+	}
+
+	return os.WriteFile(logPath, []byte(sb.String()), 0o644)
+}

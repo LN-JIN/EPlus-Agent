@@ -8,6 +8,7 @@ package tools
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"energyplus-agent/internal/llm"
 )
@@ -131,6 +132,68 @@ func GetString(args map[string]any, key string) (string, error) {
 		return "", fmt.Errorf("参数 %s 类型错误，期望 string，实际 %T", key, v)
 	}
 	return s, nil
+}
+
+// GenerateToolDescriptions 从注册的工具列表动态生成 Markdown 格式的工具描述。
+// 格式: "- tool_name(param1, param2): description"
+// 用于替换 System Prompt 中的 {tool_descriptions} 占位符，避免提示词硬编码工具列表。
+func (r *Registry) GenerateToolDescriptions() string {
+	if len(r.entries) == 0 {
+		return "(no tools registered)"
+	}
+
+	var sb strings.Builder
+	// 按名称排序，保证输出稳定
+	names := r.Names()
+	sortStrings(names)
+	for _, name := range names {
+		entry := r.entries[name]
+		fn := entry.Tool.Function
+
+		// 提取必填参数列表
+		params := extractRequiredParams(fn.Parameters)
+
+		sb.WriteString("- ")
+		sb.WriteString(name)
+		sb.WriteString("(")
+		sb.WriteString(strings.Join(params, ", "))
+		sb.WriteString("): ")
+		sb.WriteString(fn.Description)
+		sb.WriteString("\n")
+	}
+	return strings.TrimRight(sb.String(), "\n")
+}
+
+// sortStrings 对字符串切片原地排序（避免引入 sort 包以外的依赖）
+func sortStrings(ss []string) {
+	for i := 1; i < len(ss); i++ {
+		for j := i; j > 0 && ss[j] < ss[j-1]; j-- {
+			ss[j], ss[j-1] = ss[j-1], ss[j]
+		}
+	}
+}
+
+// extractRequiredParams 从 JSON Schema 中提取 required 参数名列表
+func extractRequiredParams(schema any) []string {
+	m, ok := schema.(map[string]any)
+	if !ok {
+		return nil
+	}
+	req, ok := m["required"]
+	if !ok {
+		return nil
+	}
+	reqSlice, ok := req.([]any)
+	if !ok {
+		return nil
+	}
+	result := make([]string, 0, len(reqSlice))
+	for _, v := range reqSlice {
+		if s, ok := v.(string); ok {
+			result = append(result, s)
+		}
+	}
+	return result
 }
 
 // GetStringOr 从 args 中获取字符串值，不存在时返回默认值

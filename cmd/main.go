@@ -1,7 +1,15 @@
 // EnergyPlus Agent 入口程序
 // 启动流程：加载配置 → 初始化日志 → 读取用户描述 → 运行 Orchestrator。
-// 支持通过命令行参数指定配置文件路径，默认使用 configs/config.yaml。
-// 所有错误均打印到 stderr 并以非零状态码退出，方便脚本集成。
+//
+// 灵活入口支持：
+//   -input    从建筑描述开始完整 6 阶段流程（默认交互模式）
+//   -yaml     已有 YAML，跳过阶段 1/2，从阶段 3（YAML→IDF）开始
+//   -idf      已有 IDF，跳过阶段 1-3，从阶段 4（仿真）开始
+//   -sim-dir  已有仿真目录，跳过阶段 1-4，从阶段 5（报告）开始
+//   -epw      自定义 EPW 气象文件（覆盖配置文件默认值）
+//   -resume   续传会话 ID（从上次断点继续）
+//   -skip-report  跳过阶段 5 报告解读
+//   -skip-param   跳过阶段 6 参数分析
 
 package main
 
@@ -23,8 +31,16 @@ import (
 
 func main() {
 	// ── 命令行参数 ──────────────────────────────────────────────
-	configPath := flag.String("config", "configs/config.yaml", "配置文件路径")
-	inputText := flag.String("input", "", "建筑描述（可选，不填则进入交互模式）")
+	configPath  := flag.String("config",       "configs/config.yaml", "配置文件路径")
+	inputText   := flag.String("input",        "", "建筑描述（可选，不填则进入交互模式）")
+	yamlPath    := flag.String("yaml",         "", "直接提供 YAML 路径，跳过阶段 1/2")
+	idfPath     := flag.String("idf",          "", "直接提供 IDF 路径，跳过阶段 1-3")
+	simDir      := flag.String("sim-dir",      "", "直接提供仿真输出目录，跳过阶段 1-4")
+	epwPath     := flag.String("epw",          "", "自定义 EPW 气象文件路径（覆盖配置默认值）")
+	resumeID    := flag.String("resume",       "", "续传会话 ID（从已有 session JSON 恢复）")
+	skipReport   := flag.Bool("skip-report",     false, "跳过阶段 5（报告解读）")
+	skipParam    := flag.Bool("skip-param",      false, "跳过阶段 6（参数分析）")
+	analysisGoal := flag.String("analysis-goal", "",    "Phase 6 参数分析目标（空字符串则交互询问）")
 	flag.Parse()
 
 	// ── 加载配置 ──────────────────────────────────────────────
@@ -49,14 +65,29 @@ func main() {
 	// ── 打印启动横幅 ──────────────────────────────────────────
 	printBanner(cfg)
 
-	// ── 读取用户输入 ──────────────────────────────────────────
-	userInput := *inputText
-	if userInput == "" {
-		userInput, err = readUserInput()
-		if err != nil || userInput == "" {
-			fmt.Fprintln(os.Stderr, "错误：未获取到建筑描述")
-			os.Exit(1)
+	// ── 构建 RunConfig ────────────────────────────────────────
+	runCfg := orchestrator.RunConfig{
+		YAMLPath:     *yamlPath,
+		IDFPath:      *idfPath,
+		SimOutDir:    *simDir,
+		EPWPath:      *epwPath,
+		ResumeID:     *resumeID,
+		SkipReport:   *skipReport,
+		SkipParam:    *skipParam,
+		AnalysisGoal: *analysisGoal,
+	}
+
+	// 确定用户输入（只在从头开始时需要）
+	if *idfPath == "" && *yamlPath == "" && *simDir == "" && *resumeID == "" {
+		userInput := *inputText
+		if userInput == "" {
+			userInput, err = readUserInput()
+			if err != nil || userInput == "" {
+				fmt.Fprintln(os.Stderr, "错误：未获取到建筑描述")
+				os.Exit(1)
+			}
 		}
+		runCfg.UserInput = userInput
 	}
 
 	// ── 设置 Context（支持 Ctrl+C 优雅退出）────────────────────
@@ -65,8 +96,7 @@ func main() {
 
 	// ── 运行主流程 ───────────────────────────────────────────
 	orch := orchestrator.New(cfg)
-	if err := orch.Run(ctx, userInput); err != nil {
-		// 区分用户中断和系统错误
+	if err := orch.RunWithConfig(ctx, runCfg); err != nil {
 		if ctx.Err() != nil {
 			fmt.Println("\n\n已中断（Ctrl+C）")
 			os.Exit(0)
@@ -103,7 +133,6 @@ func readUserInput() (string, error) {
 		if line != "" {
 			lines = append(lines, line)
 		}
-		// 如果输入了一行非空内容且下一行可能是 "."，继续等待
 	}
 
 	result := strings.Join(lines, "\n")
@@ -115,12 +144,13 @@ func readUserInput() (string, error) {
 func printBanner(cfg *config.Config) {
 	fmt.Println()
 	fmt.Println("\033[1;36m╔══════════════════════════════════════════════════════════╗\033[0m")
-	fmt.Println("\033[1;36m║          EnergyPlus Agent  v0.1 (Go)                    ║\033[0m")
-	fmt.Println("\033[1;36m║     意图收集 → YAML 生成 → MCP 转换 → 展示 IDF          ║\033[0m")
+	fmt.Println("\033[1;36m║       EnergyPlus Agent  v0.2 (Go)                       ║\033[0m")
+	fmt.Println("\033[1;36m║  意图收集→YAML生成→IDF转换→仿真→报告→参数分析            ║\033[0m")
 	fmt.Println("\033[1;36m╚══════════════════════════════════════════════════════════╝\033[0m")
 	fmt.Println()
 	fmt.Printf("  模型:    \033[33m%s\033[0m  (%s)\n", cfg.LLM.Model, cfg.LLM.BaseURL)
 	fmt.Printf("  MCP:     \033[33m%s\033[0m\n", cfg.MCP.BaseURL)
+	fmt.Printf("  脚本:    \033[33m%s\033[0m\n", cfg.Session.SimulationScript)
 	fmt.Printf("  输出目录: \033[33m%s\033[0m\n", cfg.Session.OutputDir)
 	fmt.Printf("  日志文件: \033[33m%s\033[0m\n", cfg.Log.File)
 	fmt.Println()

@@ -192,15 +192,25 @@ func PrintSummary(summary string) {
 }
 
 // PrintFinalResult 展示最终结果横幅
-func PrintFinalResult(yamlPath string, duration string) {
+func PrintFinalResult(yamlPath, idfPath, simOutDir, reportPath, duration string) {
 	line := strings.Repeat("═", 60)
 	fmt.Printf("\n\033[1;32m%s\033[0m\n", line)
-	fmt.Printf("\033[1;32m  ✓ EnergyPlus 配置生成完成！\033[0m\n")
+	fmt.Printf("\033[1;32m  ✓ EnergyPlus 所有流程已完成！\033[0m\n")
 	fmt.Printf("\033[1;32m%s\033[0m\n", line)
-	fmt.Printf("\n  YAML 文件: \033[1;33m%s\033[0m\n", yamlPath)
-	fmt.Printf("  总耗时:    %s\n", duration)
-	fmt.Printf("\n  下一步：运行 EnergyPlus 仿真\n")
-	fmt.Printf("  命令示例: energyplus -w weather.epw -r %s\n\n", yamlPath)
+	fmt.Println()
+	if yamlPath != "" {
+		fmt.Printf("  YAML 配置:  \033[1;33m%s\033[0m\n", yamlPath)
+	}
+	if idfPath != "" {
+		fmt.Printf("  IDF 文件:   \033[1;33m%s\033[0m\n", idfPath)
+	}
+	if simOutDir != "" {
+		fmt.Printf("  仿真输出:   \033[1;33m%s\033[0m\n", simOutDir)
+	}
+	if reportPath != "" {
+		fmt.Printf("  分析报告:   \033[1;33m%s\033[0m\n", reportPath)
+	}
+	fmt.Printf("\n  总耗时:     %s\n\n", duration)
 }
 
 func max(a, b int) int {

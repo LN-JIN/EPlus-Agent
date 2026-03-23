@@ -101,6 +101,11 @@ type BuildingIntent struct {
 	Loads      LoadsSpec    `json:"loads"`
 	Schedule   ScheduleSpec `json:"schedule"`
 	Simulation SimSpec      `json:"simulation"`
+
+	// OutputVariables 用户希望仿真记录的输出变量（Phase 1 收集，Phase 3 写入 IDF）
+	// 预定义值: "hvac_energy"（空调逐时能耗）、"zone_temperature"（房间逐时温度）
+	// 其他: 用户描述经 LLM 解析后的 EnergyPlus Output:Variable 名称
+	OutputVariables []string `json:"output_variables,omitempty"`
 }
 
 // IsComplete checks whether the intent contains the minimum information

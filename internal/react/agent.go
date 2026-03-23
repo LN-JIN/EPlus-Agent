@@ -62,14 +62,17 @@ func (a *Agent) Run(ctx context.Context, systemPrompt, userInput string) (*Resul
 		fmt.Printf("\n") // 保证流式输出前有换行
 
 		// 流式调用 LLM，实时打印 token
-		respMsg, err := a.llmClient.ChatStream(ctx, messages, llmTools, func(token string) {
-			logger.LLMThought(token)
-		})
+		var roundTokens int
+		respMsg, err := a.llmClient.ChatStream(ctx, messages, llmTools,
+			func(token string) { logger.LLMThought(token) },
+			func(u llm.Usage) { roundTokens = u.TotalTokens },
+		)
 		if err != nil {
 			result.Error = fmt.Errorf("第 %d 轮 LLM 调用失败: %w", iter, err)
 			return result, result.Error
 		}
 		logger.LLMThoughtEnd()
+		result.TotalTokens += roundTokens
 
 		step.Thought = respMsg.Content
 
@@ -141,14 +144,17 @@ func (a *Agent) RunWithMessages(ctx context.Context, messages []llm.Message) (*R
 		step := Step{Iter: iter}
 		fmt.Printf("\n")
 
-		respMsg, err := a.llmClient.ChatStream(ctx, messages, llmTools, func(token string) {
-			logger.LLMThought(token)
-		})
+		var roundTokens2 int
+		respMsg, err := a.llmClient.ChatStream(ctx, messages, llmTools,
+			func(token string) { logger.LLMThought(token) },
+			func(u llm.Usage) { roundTokens2 = u.TotalTokens },
+		)
 		if err != nil {
 			result.Error = fmt.Errorf("第 %d 轮 LLM 调用失败: %w", iter, err)
 			return result, result.Error
 		}
 		logger.LLMThoughtEnd()
+		result.TotalTokens += roundTokens2
 
 		step.Thought = respMsg.Content
 

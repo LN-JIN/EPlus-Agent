@@ -118,6 +118,10 @@ func (c *Client) ClearAll(ctx context.Context) error {
 }
 
 // RunSimulation 执行 EnergyPlus 仿真，生成 IDF 并运行
+//
+// Deprecated: 因未知原因通过 MCP 调用仿真会产生异常，请改用 eplusrun.Runner.RunSimulation()
+// 直接通过命令行调用 EPlus-MCP main.py。若将来 MCP 问题修复，可恢复使用此方法。
+//
 // epwPath: EPW 气象文件路径；outputDir: 输出目录
 func (c *Client) RunSimulation(ctx context.Context, epwPath, outputDir string) (string, error) {
 	slog.Info("[MCP] 运行仿真", "epw", epwPath, "output_dir", outputDir)

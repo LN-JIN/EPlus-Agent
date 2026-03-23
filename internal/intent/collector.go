@@ -34,7 +34,8 @@ type collectState struct {
 // Collect 执行意图收集流程
 // userDescription: 用户的初始建筑描述文字
 // skillLoader: 已加载的 skill 集合（可为 nil）
-// 返回: 确认后的 BuildingIntent
+// sessionID, outputDir: 用于写 ReAct 日志（空字符串则跳过）
+// 返回: 确认后的 BuildingIntent，本阶段累计 token 消耗
 func Collect(
 	ctx context.Context,
 	llmClient *llm.Client,
@@ -42,12 +43,27 @@ func Collect(
 	skillLoader *skills.Loader,
 	maxIter int,
 	userDescription string,
-) (*BuildingIntent, error) {
+	sessionID, outputDir string,
+) (*BuildingIntent, int, error) {
 	slog.Info("[Intent] 开始意图收集", "user_input_len", len(userDescription))
 
 	// RAG：检索相关的建筑示例（v0.1 为 Noop，不影响流程）
 	docs, _ := retriever.Query(ctx, userDescription, 2)
 	ragContext := rag.FormatDocs(docs)
+
+	// 收集所有 ReAct 步骤，函数退出时写日志
+	var allSteps []logger.ReActStep
+	if outputDir != "" && sessionID != "" {
+		defer func() {
+			if len(allSteps) == 0 {
+				return
+			}
+			logPath := filepath.Join(outputDir, "react_logs", sessionID+"_intent_collect.md")
+			if writeErr := logger.WriteReActLog(logPath, "intent_collect", sessionID, allSteps); writeErr != nil {
+				slog.Warn("[Intent] ReAct 日志写入失败", "err", writeErr)
+			}
+		}()
+	}
 
 	state := &collectState{}
 
@@ -61,8 +77,8 @@ func Collect(
 	// 构建 ReAct Agent
 	agent := react.NewAgent(llmClient, registry, maxIter)
 
-	// 构建 System Prompt（基础 + skill 指令）
-	systemPrompt := SystemPromptIntentCollection
+	// 构建 System Prompt（动态工具描述 + skill 指令）
+	systemPrompt := BuildSystemPrompt(SystemPromptIntentCollection, registry)
 	if skillLoader != nil {
 		systemPrompt += skillLoader.BuildPromptSection("intent")
 	}
@@ -74,6 +90,7 @@ func Collect(
 	}
 
 	// 循环执行，直到用户确认或取消
+	totalTokens := 0
 	for attempt := 1; attempt <= 3; attempt++ {
 		if attempt > 1 {
 			// 用户有修改意见，将其追加到用户消息
@@ -82,19 +99,33 @@ func Collect(
 		}
 
 		result, err := agent.Run(ctx, systemPrompt, userMsg)
+		if result != nil {
+			totalTokens += result.TotalTokens
+			for _, s := range result.Steps {
+				allSteps = append(allSteps, logger.ReActStep{
+					Iter:        s.Iter,
+					Thought:     s.Thought,
+					Action:      s.Action,
+					ActionInput: s.ActionInput,
+					Observation: s.Observation,
+					IsFinal:     s.IsFinal,
+					FinalAnswer: s.FinalAnswer,
+				})
+			}
+		}
 		if err != nil {
 			slog.Warn("[Intent] ReAct 运行出错", "err", err, "attempt", attempt)
 			// 如果已经收集到了意图，仍可继续
 			if state.lastIntent != nil {
 				break
 			}
-			return nil, fmt.Errorf("意图收集失败: %w", err)
+			return nil, totalTokens, fmt.Errorf("意图收集失败: %w", err)
 		}
 
 		slog.Info("[Intent] ReAct 完成", "steps", len(result.Steps))
 
 		if state.cancelled {
-			return nil, fmt.Errorf("用户取消了操作")
+			return nil, totalTokens, fmt.Errorf("用户取消了操作")
 		}
 
 		if state.confirmed && state.lastIntent != nil {
@@ -112,7 +143,7 @@ func Collect(
 	}
 
 	if state.lastIntent == nil {
-		return nil, fmt.Errorf("意图收集未完成，未获取到有效的建筑信息")
+		return nil, totalTokens, fmt.Errorf("意图收集未完成，未获取到有效的建筑信息")
 	}
 
 	complete, missing := state.lastIntent.IsComplete()
@@ -126,7 +157,7 @@ func Collect(
 		"city", state.lastIntent.Building.City,
 		"zones", len(state.lastIntent.Geometry.Zones),
 	)
-	return state.lastIntent, nil
+	return state.lastIntent, totalTokens, nil
 }
 
 // registerCollectTools 注册意图收集阶段的工具

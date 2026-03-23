@@ -17,6 +17,7 @@ import (
 type StreamResult struct {
 	Content   string     // 完整文本内容
 	ToolCalls []ToolCall // 完整的工具调用列表（拼接后）
+	Usage     Usage      // Token 用量（stream_options include_usage=true 时有效）
 }
 
 // ParseSSEStream 从 HTTP 响应体中解析 SSE 流式数据
@@ -58,6 +59,10 @@ func ParseSSEStream(body io.Reader, onToken func(token string)) (*StreamResult, 
 		}
 
 		if len(chunk.Choices) == 0 {
+			// 捕获末尾 usage chunk（stream_options include_usage=true 时）
+			if chunk.Usage != nil && chunk.Usage.TotalTokens > 0 {
+				result.Usage = *chunk.Usage
+			}
 			continue
 		}
 
