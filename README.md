@@ -27,6 +27,8 @@
 
 > **说明：** 本项目旨在探索 LLM Agent 在建筑能耗仿真领域的一种落地路径，结合 ReAct 推理、多 Agent 协作与自愈修复等技术，提供一套可参考的实现思路。Agent 驱动仿真的方式并不唯一，欢迎基于此思路探索更多变体。
 
+> 当前版本需要继续进行系统性量化验证，引入标准测试集，并开展多 LLM 对比实验，以提供更客观的参考依据。
+
 > EPlus-MCP来自仓库 https://github.com/ITOTI-Y/EnergyPlus-Agent ，该项目提供 MCP 服务，但尚未实现 Agent，期待其下一步实现 。
 ---
 
@@ -40,7 +42,7 @@
 |---|---|---|
 | 🔄 | **ReAct**（思考 → 行动 → 观察） | **核心模式**，贯穿 Phase 1 / 4 / 6；同一推理引擎，工具集按阶段独立配置 |
 | 🧩 | **Planner + 并发 Workers** | **已实现**，用于 Phase 6；Planner 负责规划变体方案，多 Worker 并发执行仿真 |
-| 🔀 | **Plan-Execute-Replan** | **可接入**；执行中动态重规划，适用于方案需在执行时动态调整的复杂场景 |
+| 🔀 | **Plan-Execute-Replan** | **可接入**；执行中动态重规划，适用于方案需在执行时动态调整的复杂场景，例如报告生成场景 |
 
 #### 端到端自动化
 
@@ -63,7 +65,7 @@
 |---|---|---|
 | ⚡ | **并发参数敏感性分析** | Planner Agent 先探查 IDF 真实对象名与字段值，再规划多个参数变体；多 Worker 并发仿真（默认 3 路），汇总输出含对比表格与 AI 解读的分析报告 |
 | 🔌 | **灵活入口与断点续传** | 支持从任意阶段切入（UserInput / YAML / IDF / 仿真目录），会话状态逐阶段持久化，通过 `-resume` 无缝恢复中断会话 |
-| 🔍 | **全流程可观测** | 每阶段 ReAct 推理步骤（思考→工具调用→观察）以结构化 Markdown 完整留存，Token 消耗按阶段统计，行为完全可追溯 |
+| 🔍 | **全流程可观测** | 每阶段 ReAct 推理步骤（思考→工具调用→观察）以结构化 Markdown 完整留存，Token 消耗按阶段统计，行为完全可追溯。例如：[output/react_logs/session_20260323_170727_paramanalysis_planner.md](output/react_logs/session_20260323_170727_paramanalysis_planner.md) |
 
 ---
 
@@ -140,7 +142,7 @@
 - [x] 可跳过可选阶段（`-skip-report`、`-skip-param`）
 
 ### 支持的参数化分析类型
-- [x] 外墙 / 屋顶保温层厚度（Material.Thickness）
+- [x] 外墙 / 屋顶材料（Material.Thickness）
 - [x] 窗户 U 值（WindowMaterial:SimpleGlazingSystem.UFactor）
 - [x] 窗户太阳得热系数 SHGC
 - [x] 照明功率密度（Lights.Watts_per_Zone_Floor_Area）
@@ -150,17 +152,13 @@
 
 ## 未来计划
 
-- [ ] **RAG 检索增强** — 接入建筑节能标准知识库（GB 50189、ASHRAE 90.1），提升 YAML 生成的规范符合度
-- [ ] **更多参数化类型** — 窗墙比（WWR）、HVAC 系统效率（COP）、温控设定点
+- [ ] **RAG 检索增强** — 提升报告生成的规范符合度
 - [ ] **多气候区天气文件** — 内置主要城市 EPW，支持一键切换气候区对比
 - [ ] **建筑类型模板** — 预置办公、住宅、商业、学校等典型建筑基础模板
 - [ ] **Web UI** — 提供浏览器端可视化界面，展示仿真进度与报告
 - [ ] **报告可视化** — 在 Markdown 报告中嵌入能耗图表（SVG/PNG）
-- [ ] **多 LLM 支持** — 适配 GPT-4o、Claude、Gemini 等模型
 - [ ] **IDF 几何可视化** — 生成建筑三维几何预览
 
-
-> 当前版本需要继续进行系统性量化验证，评估体系仍在建设中。后续计划引入标准测试集，并开展多 LLM 对比实验，以提供更客观的参考依据。
 
 ---
 
@@ -285,7 +283,7 @@ EPlus-MCP 是本项目的 Python 工具后端，提供：
 - `edit-idf` / `read-idf` — IDF 对象读写（基于 eppy）
 - `validate-idf` — IDF 合法性验证
 
-MCP调用时出现了一些异常（尚未解决），目前EPlus-Agent 不得不通过子进程调用 `python main.py <command>`，以 stdout 传递结果。
+MCP调用时出现了一些异常（尚未解决），目前EPlus-Agent 不得不通过子进程调用 `python main.py <command>`，以 stdout 传递结果。后续会修正。
 
 ### LLM API
 

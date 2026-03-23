@@ -1,0 +1,262 @@
+Shadowing Combinations
+..Solar Distribution=FullInteriorAndExterior
+..In the following, only the first 10 reference surfaces will be shown.
+..But all surfaces are used in the calculations.
+==================================
+Surface=ZONE_F1_WALL_SOUTH is used as Receiving Surface in calculations and is convex.
+Number of general casting surfaces=0
+Number of back surfaces=8
+...Surface=ZONE_F1_WALL_NORTH
+...Surface=ZONE_F1_WALL_EAST
+...Surface=ZONE_F1_WALL_WEST
+...Surface=ZONE_F1_FLOOR
+...Surface=ZONE_F1_CEILING
+...Surface=ZONE_F1_WINDOW_NORTH
+...Surface=ZONE_F1_WINDOW_EAST
+...Surface=ZONE_F1_WINDOW_WEST
+Number of receiving sub surfaces=1
+....Surface=ZONE_F1_WINDOW_SOUTH
+==================================
+Surface=ZONE_F1_WINDOW_SOUTH is not used as Receiving Surface in calculations.
+Number of general casting surfaces=0
+Number of back surfaces=0
+Number of receiving sub surfaces=0
+==================================
+Surface=ZONE_F1_WALL_NORTH is used as Receiving Surface in calculations and is convex.
+Number of general casting surfaces=0
+Number of back surfaces=8
+...Surface=ZONE_F1_WALL_SOUTH
+...Surface=ZONE_F1_WALL_EAST
+...Surface=ZONE_F1_WALL_WEST
+...Surface=ZONE_F1_FLOOR
+...Surface=ZONE_F1_CEILING
+...Surface=ZONE_F1_WINDOW_SOUTH
+...Surface=ZONE_F1_WINDOW_EAST
+...Surface=ZONE_F1_WINDOW_WEST
+Number of receiving sub surfaces=1
+....Surface=ZONE_F1_WINDOW_NORTH
+==================================
+Surface=ZONE_F1_WINDOW_NORTH is not used as Receiving Surface in calculations.
+Number of general casting surfaces=0
+Number of back surfaces=0
+Number of receiving sub surfaces=0
+==================================
+Surface=ZONE_F1_WALL_EAST is used as Receiving Surface in calculations and is convex.
+Number of general casting surfaces=0
+Number of back surfaces=8
+...Surface=ZONE_F1_WALL_SOUTH
+...Surface=ZONE_F1_WALL_NORTH
+...Surface=ZONE_F1_WALL_WEST
+...Surface=ZONE_F1_FLOOR
+...Surface=ZONE_F1_CEILING
+...Surface=ZONE_F1_WINDOW_SOUTH
+...Surface=ZONE_F1_WINDOW_NORTH
+...Surface=ZONE_F1_WINDOW_WEST
+Number of receiving sub surfaces=1
+....Surface=ZONE_F1_WINDOW_EAST
+==================================
+Surface=ZONE_F1_WINDOW_EAST is not used as Receiving Surface in calculations.
+Number of general casting surfaces=0
+Number of back surfaces=0
+Number of receiving sub surfaces=0
+==================================
+Surface=ZONE_F1_WALL_WEST is used as Receiving Surface in calculations and is convex.
+Number of general casting surfaces=0
+Number of back surfaces=8
+...Surface=ZONE_F1_WALL_SOUTH
+...Surface=ZONE_F1_WALL_NORTH
+...Surface=ZONE_F1_WALL_EAST
+...Surface=ZONE_F1_FLOOR
+...Surface=ZONE_F1_CEILING
+...Surface=ZONE_F1_WINDOW_SOUTH
+...Surface=ZONE_F1_WINDOW_NORTH
+...Surface=ZONE_F1_WINDOW_EAST
+Number of receiving sub surfaces=1
+....Surface=ZONE_F1_WINDOW_WEST
+==================================
+Surface=ZONE_F1_WINDOW_WEST is not used as Receiving Surface in calculations.
+Number of general casting surfaces=0
+Number of back surfaces=0
+Number of receiving sub surfaces=0
+==================================
+Surface=ZONE_F1_FLOOR is not used as Receiving Surface in calculations.
+Number of general casting surfaces=0
+Number of back surfaces=0
+Number of receiving sub surfaces=0
+==================================
+Surface=ZONE_F1_CEILING is not used as Receiving Surface in calculations.
+Number of general casting surfaces=0
+Number of back surfaces=0
+Number of receiving sub surfaces=0
+==================================
+Surface=ZONE_F2_WALL_SOUTH is used as Receiving Surface in calculations and is convex.
+Number of general casting surfaces=0
+Number of back surfaces=8
+...Surface=ZONE_F2_WALL_NORTH
+...Surface=ZONE_F2_WALL_EAST
+...Surface=ZONE_F2_WALL_WEST
+...Surface=ZONE_F2_FLOOR
+...Surface=ZONE_F2_CEILING
+...Surface=ZONE_F2_WINDOW_NORTH
+...Surface=ZONE_F2_WINDOW_EAST
+...Surface=ZONE_F2_WINDOW_WEST
+Number of receiving sub surfaces=1
+....Surface=ZONE_F2_WINDOW_SOUTH
+==================================
+Surface=ZONE_F2_WINDOW_SOUTH is not used as Receiving Surface in calculations.
+Number of general casting surfaces=0
+Number of back surfaces=0
+Number of receiving sub surfaces=0
+==================================
+Surface=ZONE_F2_WALL_NORTH is used as Receiving Surface in calculations and is convex.
+Number of general casting surfaces=0
+Number of back surfaces=8
+...Surface=ZONE_F2_WALL_SOUTH
+...Surface=ZONE_F2_WALL_EAST
+...Surface=ZONE_F2_WALL_WEST
+...Surface=ZONE_F2_FLOOR
+...Surface=ZONE_F2_CEILING
+...Surface=ZONE_F2_WINDOW_SOUTH
+...Surface=ZONE_F2_WINDOW_EAST
+...Surface=ZONE_F2_WINDOW_WEST
+Number of receiving sub surfaces=1
+....Surface=ZONE_F2_WINDOW_NORTH
+==================================
+Surface=ZONE_F2_WINDOW_NORTH is not used as Receiving Surface in calculations.
+Number of general casting surfaces=0
+Number of back surfaces=0
+Number of receiving sub surfaces=0
+==================================
+Surface=ZONE_F2_WALL_EAST is used as Receiving Surface in calculations and is convex.
+Number of general casting surfaces=0
+Number of back surfaces=8
+...Surface=ZONE_F2_WALL_SOUTH
+...Surface=ZONE_F2_WALL_NORTH
+...Surface=ZONE_F2_WALL_WEST
+...Surface=ZONE_F2_FLOOR
+...Surface=ZONE_F2_CEILING
+...Surface=ZONE_F2_WINDOW_SOUTH
+...Surface=ZONE_F2_WINDOW_NORTH
+...Surface=ZONE_F2_WINDOW_WEST
+Number of receiving sub surfaces=1
+....Surface=ZONE_F2_WINDOW_EAST
+==================================
+Surface=ZONE_F2_WINDOW_EAST is not used as Receiving Surface in calculations.
+Number of general casting surfaces=0
+Number of back surfaces=0
+Number of receiving sub surfaces=0
+==================================
+Surface=ZONE_F2_WALL_WEST is used as Receiving Surface in calculations and is convex.
+Number of general casting surfaces=0
+Number of back surfaces=8
+...Surface=ZONE_F2_WALL_SOUTH
+...Surface=ZONE_F2_WALL_NORTH
+...Surface=ZONE_F2_WALL_EAST
+...Surface=ZONE_F2_FLOOR
+...Surface=ZONE_F2_CEILING
+...Surface=ZONE_F2_WINDOW_SOUTH
+...Surface=ZONE_F2_WINDOW_NORTH
+...Surface=ZONE_F2_WINDOW_EAST
+Number of receiving sub surfaces=1
+....Surface=ZONE_F2_WINDOW_WEST
+==================================
+Surface=ZONE_F2_WINDOW_WEST is not used as Receiving Surface in calculations.
+Number of general casting surfaces=0
+Number of back surfaces=0
+Number of receiving sub surfaces=0
+==================================
+Surface=ZONE_F2_FLOOR is not used as Receiving Surface in calculations.
+Number of general casting surfaces=0
+Number of back surfaces=0
+Number of receiving sub surfaces=0
+==================================
+Surface=ZONE_F2_CEILING is not used as Receiving Surface in calculations.
+Number of general casting surfaces=0
+Number of back surfaces=0
+Number of receiving sub surfaces=0
+==================================
+Surface=ZONE_F3_WALL_SOUTH is used as Receiving Surface in calculations and is convex.
+Number of general casting surfaces=0
+Number of back surfaces=8
+...Surface=ZONE_F3_WALL_NORTH
+...Surface=ZONE_F3_WALL_EAST
+...Surface=ZONE_F3_WALL_WEST
+...Surface=ZONE_F3_FLOOR
+...Surface=ZONE_F3_ROOF
+...Surface=ZONE_F3_WINDOW_NORTH
+...Surface=ZONE_F3_WINDOW_EAST
+...Surface=ZONE_F3_WINDOW_WEST
+Number of receiving sub surfaces=1
+....Surface=ZONE_F3_WINDOW_SOUTH
+==================================
+Surface=ZONE_F3_WINDOW_SOUTH is not used as Receiving Surface in calculations.
+Number of general casting surfaces=0
+Number of back surfaces=0
+Number of receiving sub surfaces=0
+==================================
+Surface=ZONE_F3_WALL_NORTH is used as Receiving Surface in calculations and is convex.
+Number of general casting surfaces=0
+Number of back surfaces=8
+...Surface=ZONE_F3_WALL_SOUTH
+...Surface=ZONE_F3_WALL_EAST
+...Surface=ZONE_F3_WALL_WEST
+...Surface=ZONE_F3_FLOOR
+...Surface=ZONE_F3_ROOF
+...Surface=ZONE_F3_WINDOW_SOUTH
+...Surface=ZONE_F3_WINDOW_EAST
+...Surface=ZONE_F3_WINDOW_WEST
+Number of receiving sub surfaces=1
+....Surface=ZONE_F3_WINDOW_NORTH
+==================================
+Surface=ZONE_F3_WINDOW_NORTH is not used as Receiving Surface in calculations.
+Number of general casting surfaces=0
+Number of back surfaces=0
+Number of receiving sub surfaces=0
+==================================
+Surface=ZONE_F3_WALL_EAST is used as Receiving Surface in calculations and is convex.
+Number of general casting surfaces=0
+Number of back surfaces=8
+...Surface=ZONE_F3_WALL_SOUTH
+...Surface=ZONE_F3_WALL_NORTH
+...Surface=ZONE_F3_WALL_WEST
+...Surface=ZONE_F3_FLOOR
+...Surface=ZONE_F3_ROOF
+...Surface=ZONE_F3_WINDOW_SOUTH
+...Surface=ZONE_F3_WINDOW_NORTH
+...Surface=ZONE_F3_WINDOW_WEST
+Number of receiving sub surfaces=1
+....Surface=ZONE_F3_WINDOW_EAST
+==================================
+Surface=ZONE_F3_WINDOW_EAST is not used as Receiving Surface in calculations.
+Number of general casting surfaces=0
+Number of back surfaces=0
+Number of receiving sub surfaces=0
+==================================
+Surface=ZONE_F3_WALL_WEST is used as Receiving Surface in calculations and is convex.
+Number of general casting surfaces=0
+Number of back surfaces=8
+...Surface=ZONE_F3_WALL_SOUTH
+...Surface=ZONE_F3_WALL_NORTH
+...Surface=ZONE_F3_WALL_EAST
+...Surface=ZONE_F3_FLOOR
+...Surface=ZONE_F3_ROOF
+...Surface=ZONE_F3_WINDOW_SOUTH
+...Surface=ZONE_F3_WINDOW_NORTH
+...Surface=ZONE_F3_WINDOW_EAST
+Number of receiving sub surfaces=1
+....Surface=ZONE_F3_WINDOW_WEST
+==================================
+Surface=ZONE_F3_WINDOW_WEST is not used as Receiving Surface in calculations.
+Number of general casting surfaces=0
+Number of back surfaces=0
+Number of receiving sub surfaces=0
+==================================
+Surface=ZONE_F3_FLOOR is not used as Receiving Surface in calculations.
+Number of general casting surfaces=0
+Number of back surfaces=0
+Number of receiving sub surfaces=0
+==================================
+Surface=ZONE_F3_ROOF is used as Receiving Surface in calculations and is convex.
+Number of general casting surfaces=0
+Number of back surfaces=0
+Number of receiving sub surfaces=0

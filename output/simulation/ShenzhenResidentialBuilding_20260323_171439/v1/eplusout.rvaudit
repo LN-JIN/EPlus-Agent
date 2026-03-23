@@ -1,0 +1,13 @@
+ ReadVarsESO
+ processing:D:\TryAgent\EPlus-Agent\output\idf\ShenzhenResidentialBuilding_20260323_171439\ShenzhenResidentialBuilding_20260323_171439.rvi
+ input file:D:\TryAgent\EPlus-Agent\output\simulation\ShenzhenResidentialBuilding_20260323_171439\v1\eplusout.eso
+ output file:D:\TryAgent\EPlus-Agent\output\simulation\ShenzhenResidentialBuilding_20260323_171439\v1\eplusout.csv
+ getting all vars from:D:\TryAgent\EPlus-Agent\output\simulation\ShenzhenResidentialBuilding_20260323_171439\v1\eplusout.eso
+  number variables requested for output=           3
+ ReadVars Run Time=00hr 00min  0.22sec
+ ReadVarsESO program completed successfully.
+ ReadVarsESO
+ processing:D:\TryAgent\EPlus-Agent\output\idf\ShenzhenResidentialBuilding_20260323_171439\ShenzhenResidentialBuilding_20260323_171439.mvi
+ Requested ESO file=D:\TryAgent\EPlus-Agent\output\simulation\ShenzhenResidentialBuilding_20260323_171439\v1\eplusout.mtr
+ does not exist.  ReadVarsESO program terminated.
+ ReadVarsESO program terminated.

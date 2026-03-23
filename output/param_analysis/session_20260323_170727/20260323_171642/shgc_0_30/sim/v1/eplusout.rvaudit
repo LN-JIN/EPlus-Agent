@@ -1,0 +1,13 @@
+ ReadVarsESO
+ processing:D:\TryAgent\EPlus-Agent\output\param_analysis\session_20260323_170727\20260323_171642\shgc_0_30\shgc_0_30.rvi
+ input file:D:\TryAgent\EPlus-Agent\output\param_analysis\session_20260323_170727\20260323_171642\shgc_0_30\sim\v1\eplusout.eso
+ output file:D:\TryAgent\EPlus-Agent\output\param_analysis\session_20260323_170727\20260323_171642\shgc_0_30\sim\v1\eplusout.csv
+ getting all vars from:D:\TryAgent\EPlus-Agent\output\param_analysis\session_20260323_170727\20260323_171642\shgc_0_30\sim\v1\eplusout.eso
+  number variables requested for output=           3
+ ReadVars Run Time=00hr 00min  0.20sec
+ ReadVarsESO program completed successfully.
+ ReadVarsESO
+ processing:D:\TryAgent\EPlus-Agent\output\param_analysis\session_20260323_170727\20260323_171642\shgc_0_30\shgc_0_30.mvi
+ Requested ESO file=D:\TryAgent\EPlus-Agent\output\param_analysis\session_20260323_170727\20260323_171642\shgc_0_30\sim\v1\eplusout.mtr
+ does not exist.  ReadVarsESO program terminated.
+ ReadVarsESO program terminated.

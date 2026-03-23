@@ -1,0 +1,56 @@
+{
+  "session_id": "session_20260323_170727",
+  "phase": "done",
+  "yaml_path": "D:\\TryAgent\\EPlus-Agent\\output\\ShenzhenResidentialBuilding_20260323_171439.yaml",
+  "idf_path": "D:\\TryAgent\\EPlus-Agent\\output\\idf\\ShenzhenResidentialBuilding_20260323_171439\\ShenzhenResidentialBuilding_20260323_171439.idf",
+  "sim_out_dir": "D:\\TryAgent\\EPlus-Agent\\output\\simulation\\ShenzhenResidentialBuilding_20260323_171439\\v1",
+  "report_path": "D:\\TryAgent\\EPlus-Agent\\output\\reports\\ShenzhenResidentialBuilding_20260323_171439_report.md",
+  "param_report_path": "D:\\TryAgent\\EPlus-Agent\\output\\reports\\ShenzhenResidentialBuilding_20260323_171439_param_analysis.md",
+  "user_input": "深圳市一栋 3 层住宅，建筑面积约 400 平方米",
+  "intent_json": "{\"building\":{\"name\":\"ShenzhenResidentialBuilding\",\"type\":\"Residential\",\"city\":\"Shenzhen\",\"latitude\":22.54,\"longitude\":114,\"time_zone\":8,\"elevation\":4,\"terrain\":\"Suburbs\",\"north_axis\":0},\"geometry\":{\"num_floors\":3,\"total_area\":400,\"floor_width\":12,\"floor_depth\":12,\"floor_height\":3,\"zones\":[{\"name\":\"Zone_F1\",\"floor\":1,\"multiplier\":1},{\"name\":\"Zone_F2\",\"floor\":2,\"multiplier\":1},{\"name\":\"Zone_F3\",\"floor\":3,\"multiplier\":1}]},\"envelope\":{\"wall_u\":1,\"roof_u\":0.6,\"floor_u\":0.8,\"insulation\":\"EPS\"},\"window\":{\"wwr_south\":0.35,\"wwr_north\":0.25,\"wwr_east\":0.2,\"wwr_west\":0.2,\"u_factor\":2.7,\"shgc\":0.6,\"vt\":0.72},\"loads\":{\"occupancy_type\":\"residential\",\"occupancy_density\":0.02,\"lighting_power\":6,\"equipment_power\":5},\"schedule\":{\"weekday_start\":\"08:00\",\"weekday_end\":\"22:00\",\"weekend_start\":\"08:00\",\"weekend_end\":\"22:00\",\"hvac_weekday_start\":\"06:00\",\"hvac_weekday_end\":\"23:00\",\"hvac_weekend_start\":\"06:00\",\"hvac_weekend_end\":\"23:00\",\"heating_setpoint\":20,\"cooling_setpoint\":26,\"heating_setback\":16,\"cooling_setup\":30},\"simulation\":{\"year\":2024,\"timestep\":4}}",
+  "intent_summary": "建筑名称: ShenzhenResidentialBuilding | 类型: Residential | 城市: Shenzhen\n层数: 3 层 | 总面积: 400 m² | 层高: 3.0 m\n外墙 U=1.00 W/m²K | 屋顶 U=0.60 W/m²K | 窗户 U=2.70 W/m²K, SHGC=0.60\n空调供暖设定点: 20°C | 制冷设定点: 26°C",
+  "output_variables": null,
+  "validation_summary": "",
+  "config_summary": "",
+  "snapshots": [
+    {
+      "label": "initial_yaml",
+      "phase": "yaml_generating",
+      "yaml_path": "D:\\TryAgent\\EPlus-Agent\\output\\ShenzhenResidentialBuilding_20260323_171439.yaml",
+      "idf_path": "",
+      "sim_out_dir": "",
+      "created_at": "2026-03-23T17:14:39.5022629+08:00"
+    },
+    {
+      "label": "idf_v1",
+      "phase": "idf_converting",
+      "yaml_path": "",
+      "idf_path": "D:\\TryAgent\\EPlus-Agent\\output\\idf\\ShenzhenResidentialBuilding_20260323_171439\\ShenzhenResidentialBuilding_20260323_171439.idf",
+      "sim_out_dir": "",
+      "created_at": "2026-03-23T17:14:42.2289738+08:00"
+    },
+    {
+      "label": "sim_success_fix0",
+      "phase": "sim_running",
+      "yaml_path": "",
+      "idf_path": "D:\\TryAgent\\EPlus-Agent\\output\\idf\\ShenzhenResidentialBuilding_20260323_171439\\ShenzhenResidentialBuilding_20260323_171439.idf",
+      "sim_out_dir": "D:\\TryAgent\\EPlus-Agent\\output\\simulation\\ShenzhenResidentialBuilding_20260323_171439\\v1",
+      "created_at": "2026-03-23T17:14:47.4839566+08:00"
+    }
+  ],
+  "total_tokens": 96007,
+  "phase_tokens": {
+    "intent_collection": 31745,
+    "param_analysis": 14867,
+    "report_reading": 4180,
+    "yaml_generating": 45215
+  },
+  "failure_reason": "",
+  "created_at": "2026-03-23T17:07:27.9990288+08:00",
+  "intent_done_at": "0001-01-01T00:00:00Z",
+  "yaml_done_at": "0001-01-01T00:00:00Z",
+  "convert_done_at": "0001-01-01T00:00:00Z",
+  "sim_done_at": "0001-01-01T00:00:00Z",
+  "report_done_at": "0001-01-01T00:00:00Z",
+  "param_done_at": "2026-03-23T17:18:24.6760791+08:00"
+}

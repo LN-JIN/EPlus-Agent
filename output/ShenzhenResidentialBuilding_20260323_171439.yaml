@@ -1,0 +1,1055 @@
+# ==================================================================
+# EnergyPlus YAML Configuration for Shenzhen Residential Building
+# Generated from BuildingIntent JSON
+# ==================================================================
+
+SimulationControl:
+  Do Zone Sizing Calculation: No
+  Do System Sizing Calculation: No
+  Do Plant Sizing Calculation: No
+  Run Simulation for Sizing Periods: No
+  Run Simulation for Weather File Run Periods: Yes
+  Do HVAC Sizing Simulation for Sizing Periods: Yes
+  Maximum Number of HVAC Sizing Simulation Passes: 1
+
+Building:
+  Name: ShenzhenResidentialBuilding
+  North Axis: 0
+  Terrain: Suburbs
+  Loads Convergence Tolerance Value: 0.04
+  Temperature Convergence Tolerance Value: 0.40
+  Solar Distribution: FullInteriorAndExterior
+  Maximum Number of Warmup Days: 25
+  Minimum Number of Warmup Days: 6
+
+Timestep:
+  Number of Timesteps per Hour: 4
+
+Site:Location:
+  Name: Shenzhen_CHN
+  Latitude: 22.54
+  Longitude: 114.00
+  Time Zone: 8.00
+  Elevation: 4.00
+
+RunPeriod:
+  Name: Annual_Run
+  Begin Month: 1
+  Begin Day of Month: 1
+  Begin Year: 2024
+  End Month: 12
+  End Day of Month: 31
+  End Year: 2024
+  Day of Week for Start Day: Monday
+  Use Weather File Holidays and Special Days: Yes
+  Use Weather File Daylight Saving Period: Yes
+  Apply Weekend Holiday Rule: No
+  Use Weather File Rain Indicators: Yes
+  Use Weather File Snow Indicators: Yes
+
+# ==================================================================
+# Materials
+# Derived from BuildingIntent.envelope:
+#   wall_u=1.0 → R_ins = 1/1.0 - 0.116 - 0.17 = 0.71 → EPS_Insulation R=0.71
+#   roof_u=0.6 → R_ins = 1/0.6 - 0.116 - 0.18 - 0.17 = 1.20 → Roof_EPS_Insulation R=1.20
+#   floor_u=0.8 → R_ins = 1/0.8 - 0.116 - 0.17 = 0.96 → Floor_EPS_Insulation R=0.96
+# ==================================================================
+Material:
+  - Name: Concrete_200mm
+    Type: Standard
+    Roughness: MediumRough
+    Thickness: 0.20
+    Conductivity: 1.73
+    Density: 2300
+    Specific_Heat: 880
+
+  - Name: EPS_Insulation
+    Type: NoMass
+    Roughness: MediumRough
+    Thermal_Resistance: 0.71
+
+  - Name: Roof_EPS_Insulation
+    Type: NoMass
+    Roughness: MediumRough
+    Thermal_Resistance: 1.20
+
+  - Name: Roof_AirGap
+    Type: AirGap
+    Thermal_Resistance: 0.18
+
+  - Name: Floor_EPS_Insulation
+    Type: NoMass
+    Roughness: MediumRough
+    Thermal_Resistance: 0.96
+
+  - Name: SimpleGlazing
+    Type: Glazing
+    U-Factor: 2.7
+    Solar_Heat_Gain_Coefficient: 0.60
+    Visible_Transmittance: 0.72
+
+# ==================================================================
+# Constructions
+# ==================================================================
+Construction:
+  - Name: Ext_Wall_Const
+    Layers:
+      - Concrete_200mm
+      - EPS_Insulation
+
+  - Name: Roof_Const
+    Layers:
+      - Concrete_200mm
+      - Roof_AirGap
+      - Roof_EPS_Insulation
+
+  - Name: Ground_Floor_Const
+    Layers:
+      - Concrete_200mm
+      - Floor_EPS_Insulation
+
+  - Name: Interior_Floor_Const
+    Layers:
+      - Concrete_200mm
+
+  - Name: Window_Const
+    Layers:
+      - SimpleGlazing
+
+GlobalGeometryRules:
+  Starting Vertex Position: UpperLeftCorner
+  Vertex Entry Direction: Counterclockwise
+  Coordinate System: World
+
+# ==================================================================
+# Zones
+# floor_width=12, floor_depth=12, floor_height=3.0
+# Zone_F1: Z 0.0 → 3.0  |  Zone_F2: Z 3.0 → 6.0  |  Zone_F3: Z 6.0 → 9.0
+# Zone Origin = (0,0,0) for all — surfaces use absolute world coords
+# ==================================================================
+Zone:
+  - Name: Zone_F1
+    Direction of Relative North: null
+    X Origin: 0
+    Y Origin: 0
+    Z Origin: 0
+    Type: 1
+    Multiplier: 1
+    Ceiling Height: autocalculate
+    Volume: autocalculate
+    Floor Area: autocalculate
+
+  - Name: Zone_F2
+    Direction of Relative North: null
+    X Origin: 0
+    Y Origin: 0
+    Z Origin: 0
+    Type: 1
+    Multiplier: 1
+    Ceiling Height: autocalculate
+    Volume: autocalculate
+    Floor Area: autocalculate
+
+  - Name: Zone_F3
+    Direction of Relative North: null
+    X Origin: 0
+    Y Origin: 0
+    Z Origin: 0
+    Type: 1
+    Multiplier: 1
+    Ceiling Height: autocalculate
+    Volume: autocalculate
+    Floor Area: autocalculate
+
+# ==================================================================
+# Building Surfaces
+# ==================================================================
+BuildingSurface:Detailed:
+
+  # ── Zone_F1 ──────────────────────────────────────────────────
+  - Name: Zone_F1_Floor
+    Surface Type: Floor
+    Construction Name: Ground_Floor_Const
+    Zone Name: Zone_F1
+    Space Name: null
+    Outside Boundary Condition: Ground
+    Outside Boundary Condition Object: null
+    Sun Exposure: NoSun
+    Wind Exposure: NoWind
+    View Factor to Ground: autocalculate
+    Vertices:
+      - {X: 0,  Y: 12, Z: 0}
+      - {X: 12, Y: 12, Z: 0}
+      - {X: 12, Y: 0,  Z: 0}
+      - {X: 0,  Y: 0,  Z: 0}
+
+  - Name: Zone_F1_Ceiling
+    Surface Type: Ceiling
+    Construction Name: Interior_Floor_Const
+    Zone Name: Zone_F1
+    Space Name: null
+    Outside Boundary Condition: Surface
+    Outside Boundary Condition Object: Zone_F2_Floor
+    Sun Exposure: NoSun
+    Wind Exposure: NoWind
+    View Factor to Ground: autocalculate
+    Vertices:
+      - {X: 0,  Y: 0,  Z: 3.0}
+      - {X: 12, Y: 0,  Z: 3.0}
+      - {X: 12, Y: 12, Z: 3.0}
+      - {X: 0,  Y: 12, Z: 3.0}
+
+  - Name: Zone_F1_Wall_South
+    Surface Type: Wall
+    Construction Name: Ext_Wall_Const
+    Zone Name: Zone_F1
+    Space Name: null
+    Outside Boundary Condition: Outdoors
+    Outside Boundary Condition Object: null
+    Sun Exposure: SunExposed
+    Wind Exposure: WindExposed
+    View Factor to Ground: autocalculate
+    Vertices:
+      - {X: 0,  Y: 0, Z: 0}
+      - {X: 12, Y: 0, Z: 0}
+      - {X: 12, Y: 0, Z: 3.0}
+      - {X: 0,  Y: 0, Z: 3.0}
+
+  - Name: Zone_F1_Wall_North
+    Surface Type: Wall
+    Construction Name: Ext_Wall_Const
+    Zone Name: Zone_F1
+    Space Name: null
+    Outside Boundary Condition: Outdoors
+    Outside Boundary Condition Object: null
+    Sun Exposure: SunExposed
+    Wind Exposure: WindExposed
+    View Factor to Ground: autocalculate
+    Vertices:
+      - {X: 12, Y: 12, Z: 3.0}
+      - {X: 12, Y: 12, Z: 0}
+      - {X: 0,  Y: 12, Z: 0}
+      - {X: 0,  Y: 12, Z: 3.0}
+
+  - Name: Zone_F1_Wall_East
+    Surface Type: Wall
+    Construction Name: Ext_Wall_Const
+    Zone Name: Zone_F1
+    Space Name: null
+    Outside Boundary Condition: Outdoors
+    Outside Boundary Condition Object: null
+    Sun Exposure: SunExposed
+    Wind Exposure: WindExposed
+    View Factor to Ground: autocalculate
+    Vertices:
+      - {X: 12, Y: 0,  Z: 0}
+      - {X: 12, Y: 12, Z: 0}
+      - {X: 12, Y: 12, Z: 3.0}
+      - {X: 12, Y: 0,  Z: 3.0}
+
+  - Name: Zone_F1_Wall_West
+    Surface Type: Wall
+    Construction Name: Ext_Wall_Const
+    Zone Name: Zone_F1
+    Space Name: null
+    Outside Boundary Condition: Outdoors
+    Outside Boundary Condition Object: null
+    Sun Exposure: SunExposed
+    Wind Exposure: WindExposed
+    View Factor to Ground: autocalculate
+    Vertices:
+      - {X: 0, Y: 0,  Z: 3.0}
+      - {X: 0, Y: 12, Z: 3.0}
+      - {X: 0, Y: 12, Z: 0}
+      - {X: 0, Y: 0,  Z: 0}
+
+  # ── Zone_F2 ──────────────────────────────────────────────────
+  - Name: Zone_F2_Floor
+    Surface Type: Floor
+    Construction Name: Interior_Floor_Const
+    Zone Name: Zone_F2
+    Space Name: null
+    Outside Boundary Condition: Surface
+    Outside Boundary Condition Object: Zone_F1_Ceiling
+    Sun Exposure: NoSun
+    Wind Exposure: NoWind
+    View Factor to Ground: autocalculate
+    Vertices:
+      - {X: 0,  Y: 12, Z: 3.0}
+      - {X: 12, Y: 12, Z: 3.0}
+      - {X: 12, Y: 0,  Z: 3.0}
+      - {X: 0,  Y: 0,  Z: 3.0}
+
+  - Name: Zone_F2_Ceiling
+    Surface Type: Ceiling
+    Construction Name: Interior_Floor_Const
+    Zone Name: Zone_F2
+    Space Name: null
+    Outside Boundary Condition: Surface
+    Outside Boundary Condition Object: Zone_F3_Floor
+    Sun Exposure: NoSun
+    Wind Exposure: NoWind
+    View Factor to Ground: autocalculate
+    Vertices:
+      - {X: 0,  Y: 0,  Z: 6.0}
+      - {X: 12, Y: 0,  Z: 6.0}
+      - {X: 12, Y: 12, Z: 6.0}
+      - {X: 0,  Y: 12, Z: 6.0}
+
+  - Name: Zone_F2_Wall_South
+    Surface Type: Wall
+    Construction Name: Ext_Wall_Const
+    Zone Name: Zone_F2
+    Space Name: null
+    Outside Boundary Condition: Outdoors
+    Outside Boundary Condition Object: null
+    Sun Exposure: SunExposed
+    Wind Exposure: WindExposed
+    View Factor to Ground: autocalculate
+    Vertices:
+      - {X: 0,  Y: 0, Z: 3.0}
+      - {X: 12, Y: 0, Z: 3.0}
+      - {X: 12, Y: 0, Z: 6.0}
+      - {X: 0,  Y: 0, Z: 6.0}
+
+  - Name: Zone_F2_Wall_North
+    Surface Type: Wall
+    Construction Name: Ext_Wall_Const
+    Zone Name: Zone_F2
+    Space Name: null
+    Outside Boundary Condition: Outdoors
+    Outside Boundary Condition Object: null
+    Sun Exposure: SunExposed
+    Wind Exposure: WindExposed
+    View Factor to Ground: autocalculate
+    Vertices:
+      - {X: 12, Y: 12, Z: 6.0}
+      - {X: 12, Y: 12, Z: 3.0}
+      - {X: 0,  Y: 12, Z: 3.0}
+      - {X: 0,  Y: 12, Z: 6.0}
+
+  - Name: Zone_F2_Wall_East
+    Surface Type: Wall
+    Construction Name: Ext_Wall_Const
+    Zone Name: Zone_F2
+    Space Name: null
+    Outside Boundary Condition: Outdoors
+    Outside Boundary Condition Object: null
+    Sun Exposure: SunExposed
+    Wind Exposure: WindExposed
+    View Factor to Ground: autocalculate
+    Vertices:
+      - {X: 12, Y: 0,  Z: 3.0}
+      - {X: 12, Y: 12, Z: 3.0}
+      - {X: 12, Y: 12, Z: 6.0}
+      - {X: 12, Y: 0,  Z: 6.0}
+
+  - Name: Zone_F2_Wall_West
+    Surface Type: Wall
+    Construction Name: Ext_Wall_Const
+    Zone Name: Zone_F2
+    Space Name: null
+    Outside Boundary Condition: Outdoors
+    Outside Boundary Condition Object: null
+    Sun Exposure: SunExposed
+    Wind Exposure: WindExposed
+    View Factor to Ground: autocalculate
+    Vertices:
+      - {X: 0, Y: 0,  Z: 6.0}
+      - {X: 0, Y: 12, Z: 6.0}
+      - {X: 0, Y: 12, Z: 3.0}
+      - {X: 0, Y: 0,  Z: 3.0}
+
+  # ── Zone_F3 ──────────────────────────────────────────────────
+  - Name: Zone_F3_Floor
+    Surface Type: Floor
+    Construction Name: Interior_Floor_Const
+    Zone Name: Zone_F3
+    Space Name: null
+    Outside Boundary Condition: Surface
+    Outside Boundary Condition Object: Zone_F2_Ceiling
+    Sun Exposure: NoSun
+    Wind Exposure: NoWind
+    View Factor to Ground: autocalculate
+    Vertices:
+      - {X: 0,  Y: 12, Z: 6.0}
+      - {X: 12, Y: 12, Z: 6.0}
+      - {X: 12, Y: 0,  Z: 6.0}
+      - {X: 0,  Y: 0,  Z: 6.0}
+
+  - Name: Zone_F3_Roof
+    Surface Type: Roof
+    Construction Name: Roof_Const
+    Zone Name: Zone_F3
+    Space Name: null
+    Outside Boundary Condition: Outdoors
+    Outside Boundary Condition Object: null
+    Sun Exposure: SunExposed
+    Wind Exposure: WindExposed
+    View Factor to Ground: autocalculate
+    Vertices:
+      - {X: 0,  Y: 0,  Z: 9.0}
+      - {X: 12, Y: 0,  Z: 9.0}
+      - {X: 12, Y: 12, Z: 9.0}
+      - {X: 0,  Y: 12, Z: 9.0}
+
+  - Name: Zone_F3_Wall_South
+    Surface Type: Wall
+    Construction Name: Ext_Wall_Const
+    Zone Name: Zone_F3
+    Space Name: null
+    Outside Boundary Condition: Outdoors
+    Outside Boundary Condition Object: null
+    Sun Exposure: SunExposed
+    Wind Exposure: WindExposed
+    View Factor to Ground: autocalculate
+    Vertices:
+      - {X: 0,  Y: 0, Z: 6.0}
+      - {X: 12, Y: 0, Z: 6.0}
+      - {X: 12, Y: 0, Z: 9.0}
+      - {X: 0,  Y: 0, Z: 9.0}
+
+  - Name: Zone_F3_Wall_North
+    Surface Type: Wall
+    Construction Name: Ext_Wall_Const
+    Zone Name: Zone_F3
+    Space Name: null
+    Outside Boundary Condition: Outdoors
+    Outside Boundary Condition Object: null
+    Sun Exposure: SunExposed
+    Wind Exposure: WindExposed
+    View Factor to Ground: autocalculate
+    Vertices:
+      - {X: 12, Y: 12, Z: 9.0}
+      - {X: 12, Y: 12, Z: 6.0}
+      - {X: 0,  Y: 12, Z: 6.0}
+      - {X: 0,  Y: 12, Z: 9.0}
+
+  - Name: Zone_F3_Wall_East
+    Surface Type: Wall
+    Construction Name: Ext_Wall_Const
+    Zone Name: Zone_F3
+    Space Name: null
+    Outside Boundary Condition: Outdoors
+    Outside Boundary Condition Object: null
+    Sun Exposure: SunExposed
+    Wind Exposure: WindExposed
+    View Factor to Ground: autocalculate
+    Vertices:
+      - {X: 12, Y: 0,  Z: 6.0}
+      - {X: 12, Y: 12, Z: 6.0}
+      - {X: 12, Y: 12, Z: 9.0}
+      - {X: 12, Y: 0,  Z: 9.0}
+
+  - Name: Zone_F3_Wall_West
+    Surface Type: Wall
+    Construction Name: Ext_Wall_Const
+    Zone Name: Zone_F3
+    Space Name: null
+    Outside Boundary Condition: Outdoors
+    Outside Boundary Condition Object: null
+    Sun Exposure: SunExposed
+    Wind Exposure: WindExposed
+    View Factor to Ground: autocalculate
+    Vertices:
+      - {X: 0, Y: 0,  Z: 9.0}
+      - {X: 0, Y: 12, Z: 9.0}
+      - {X: 0, Y: 12, Z: 6.0}
+      - {X: 0, Y: 0,  Z: 6.0}
+
+# ==================================================================
+# Fenestration Surfaces (Windows)
+# Window calculations:
+#   window_height = H - 1.2 = 3.0 - 1.2 = 1.8 m
+#   South (wwr=0.35): window_width = 12 × 0.35 × 3.0 / 1.8 = 7.0 m, x_offset = 2.5 m
+#   North (wwr=0.25): window_width = 12 × 0.25 × 3.0 / 1.8 = 5.0 m, x_offset = 3.5 m
+#   East  (wwr=0.20): window_width = 12 × 0.20 × 3.0 / 1.8 = 4.0 m, y_offset = 4.0 m
+#   West  (wwr=0.20): window_width = 12 × 0.20 × 3.0 / 1.8 = 4.0 m, y_offset = 4.0 m
+#
+# Zone_F1: sill_z=0.9, head_z=2.7
+# Zone_F2: sill_z=3.9, head_z=5.7
+# Zone_F3: sill_z=6.9, head_z=8.7
+# ==================================================================
+FenestrationSurface:Detailed:
+  # ── Zone_F1 Windows ────────────────────────────────────────────
+  - Name: Zone_F1_Window_South
+    Surface Type: Window
+    Construction Name: Window_Const
+    Building Surface Name: Zone_F1_Wall_South
+    Outside Boundary Condition Object: null
+    View Factor to Ground: autocalculate
+    Frame and Divider Name: null
+    Multiplier: 1
+    Number of Vertices: autocalculate
+    Vertices:
+      - {X: 2.5, Y: 0, Z: 2.7}
+      - {X: 9.5, Y: 0, Z: 2.7}
+      - {X: 9.5, Y: 0, Z: 0.9}
+      - {X: 2.5, Y: 0, Z: 0.9}
+
+  - Name: Zone_F1_Window_North
+    Surface Type: Window
+    Construction Name: Window_Const
+    Building Surface Name: Zone_F1_Wall_North
+    Outside Boundary Condition Object: null
+    View Factor to Ground: autocalculate
+    Frame and Divider Name: null
+    Multiplier: 1
+    Number of Vertices: autocalculate
+    Vertices:
+      - {X: 3.5, Y: 12, Z: 2.7}
+      - {X: 8.5, Y: 12, Z: 2.7}
+      - {X: 8.5, Y: 12, Z: 0.9}
+      - {X: 3.5, Y: 12, Z: 0.9}
+
+  - Name: Zone_F1_Window_East
+    Surface Type: Window
+    Construction Name: Window_Const
+    Building Surface Name: Zone_F1_Wall_East
+    Outside Boundary Condition Object: null
+    View Factor to Ground: autocalculate
+    Frame and Divider Name: null
+    Multiplier: 1
+    Number of Vertices: autocalculate
+    Vertices:
+      - {X: 12, Y: 4.0, Z: 2.7}
+      - {X: 12, Y: 4.0, Z: 0.9}
+      - {X: 12, Y: 8.0, Z: 0.9}
+      - {X: 12, Y: 8.0, Z: 2.7}
+
+  - Name: Zone_F1_Window_West
+    Surface Type: Window
+    Construction Name: Window_Const
+    Building Surface Name: Zone_F1_Wall_West
+    Outside Boundary Condition Object: null
+    View Factor to Ground: autocalculate
+    Frame and Divider Name: null
+    Multiplier: 1
+    Number of Vertices: autocalculate
+    Vertices:
+      - {X: 0, Y: 8.0, Z: 2.7}
+      - {X: 0, Y: 8.0, Z: 0.9}
+      - {X: 0, Y: 4.0, Z: 0.9}
+      - {X: 0, Y: 4.0, Z: 2.7}
+
+  # ── Zone_F2 Windows ────────────────────────────────────────────
+  - Name: Zone_F2_Window_South
+    Surface Type: Window
+    Construction Name: Window_Const
+    Building Surface Name: Zone_F2_Wall_South
+    Outside Boundary Condition Object: null
+    View Factor to Ground: autocalculate
+    Frame and Divider Name: null
+    Multiplier: 1
+    Number of Vertices: autocalculate
+    Vertices:
+      - {X: 2.5, Y: 0, Z: 5.7}
+      - {X: 9.5, Y: 0, Z: 5.7}
+      - {X: 9.5, Y: 0, Z: 3.9}
+      - {X: 2.5, Y: 0, Z: 3.9}
+
+  - Name: Zone_F2_Window_North
+    Surface Type: Window
+    Construction Name: Window_Const
+    Building Surface Name: Zone_F2_Wall_North
+    Outside Boundary Condition Object: null
+    View Factor to Ground: autocalculate
+    Frame and Divider Name: null
+    Multiplier: 1
+    Number of Vertices: autocalculate
+    Vertices:
+      - {X: 3.5, Y: 12, Z: 5.7}
+      - {X: 8.5, Y: 12, Z: 5.7}
+      - {X: 8.5, Y: 12, Z: 3.9}
+      - {X: 3.5, Y: 12, Z: 3.9}
+
+  - Name: Zone_F2_Window_East
+    Surface Type: Window
+    Construction Name: Window_Const
+    Building Surface Name: Zone_F2_Wall_East
+    Outside Boundary Condition Object: null
+    View Factor to Ground: autocalculate
+    Frame and Divider Name: null
+    Multiplier: 1
+    Number of Vertices: autocalculate
+    Vertices:
+      - {X: 12, Y: 4.0, Z: 5.7}
+      - {X: 12, Y: 4.0, Z: 3.9}
+      - {X: 12, Y: 8.0, Z: 3.9}
+      - {X: 12, Y: 8.0, Z: 5.7}
+
+  - Name: Zone_F2_Window_West
+    Surface Type: Window
+    Construction Name: Window_Const
+    Building Surface Name: Zone_F2_Wall_West
+    Outside Boundary Condition Object: null
+    View Factor to Ground: autocalculate
+    Frame and Divider Name: null
+    Multiplier: 1
+    Number of Vertices: autocalculate
+    Vertices:
+      - {X: 0, Y: 8.0, Z: 5.7}
+      - {X: 0, Y: 8.0, Z: 3.9}
+      - {X: 0, Y: 4.0, Z: 3.9}
+      - {X: 0, Y: 4.0, Z: 5.7}
+
+  # ── Zone_F3 Windows ────────────────────────────────────────────
+  - Name: Zone_F3_Window_South
+    Surface Type: Window
+    Construction Name: Window_Const
+    Building Surface Name: Zone_F3_Wall_South
+    Outside Boundary Condition Object: null
+    View Factor to Ground: autocalculate
+    Frame and Divider Name: null
+    Multiplier: 1
+    Number of Vertices: autocalculate
+    Vertices:
+      - {X: 2.5, Y: 0, Z: 8.7}
+      - {X: 9.5, Y: 0, Z: 8.7}
+      - {X: 9.5, Y: 0, Z: 6.9}
+      - {X: 2.5, Y: 0, Z: 6.9}
+
+  - Name: Zone_F3_Window_North
+    Surface Type: Window
+    Construction Name: Window_Const
+    Building Surface Name: Zone_F3_Wall_North
+    Outside Boundary Condition Object: null
+    View Factor to Ground: autocalculate
+    Frame and Divider Name: null
+    Multiplier: 1
+    Number of Vertices: autocalculate
+    Vertices:
+      - {X: 3.5, Y: 12, Z: 8.7}
+      - {X: 8.5, Y: 12, Z: 8.7}
+      - {X: 8.5, Y: 12, Z: 6.9}
+      - {X: 3.5, Y: 12, Z: 6.9}
+
+  - Name: Zone_F3_Window_East
+    Surface Type: Window
+    Construction Name: Window_Const
+    Building Surface Name: Zone_F3_Wall_East
+    Outside Boundary Condition Object: null
+    View Factor to Ground: autocalculate
+    Frame and Divider Name: null
+    Multiplier: 1
+    Number of Vertices: autocalculate
+    Vertices:
+      - {X: 12, Y: 4.0, Z: 8.7}
+      - {X: 12, Y: 4.0, Z: 6.9}
+      - {X: 12, Y: 8.0, Z: 6.9}
+      - {X: 12, Y: 8.0, Z: 8.7}
+
+  - Name: Zone_F3_Window_West
+    Surface Type: Window
+    Construction Name: Window_Const
+    Building Surface Name: Zone_F3_Wall_West
+    Outside Boundary Condition Object: null
+    View Factor to Ground: autocalculate
+    Frame and Divider Name: null
+    Multiplier: 1
+    Number of Vertices: autocalculate
+    Vertices:
+      - {X: 0, Y: 8.0, Z: 8.7}
+      - {X: 0, Y: 8.0, Z: 6.9}
+      - {X: 0, Y: 4.0, Z: 6.9}
+      - {X: 0, Y: 4.0, Z: 8.7}
+
+# ==================================================================
+# Schedules
+# Derived from BuildingIntent.schedule:
+#   weekday_start=08:00, weekday_end=22:00
+#   weekend_start=08:00, weekend_end=22:00
+#   hvac_weekday_start=06:00, hvac_weekday_end=23:00
+#   hvac_weekend_start=06:00, hvac_weekend_end=23:00
+#   heating_setpoint=20, cooling_setpoint=26
+#   heating_setback=16, cooling_setup=30
+# ==================================================================
+Schedule:
+  ScheduleTypeLimits:
+    - Name: On_Off
+      Lower Limit Value: 0
+      Upper Limit Value: 1
+      Numeric Type: DISCRETE
+      Unit Type: Dimensionless
+    - Name: Fraction
+      Lower Limit Value: 0.0
+      Upper Limit Value: 1.0
+      Numeric Type: CONTINUOUS
+      Unit Type: Dimensionless
+    - Name: Temperature
+      Numeric Type: CONTINUOUS
+      Unit Type: Temperature
+    - Name: Any_Number
+      Numeric Type: CONTINUOUS
+      Unit Type: Dimensionless
+
+  Schedule:Compact:
+    - Name: Always_On
+      Schedule Type Limits Name: On_Off
+      Data:
+        - Through: "12/31"
+          Days:
+          - For: AllDays
+            Times:
+            - Until:
+                Time: "24:00"
+                Value: 1
+
+    # Occupancy schedule: residential pattern
+    - Name: Occupancy_Schedule
+      Schedule Type Limits Name: Fraction
+      Data:
+        - Through: "12/31"
+          Days:
+          - For: Weekdays
+            Times:
+            - Until:
+                Time: "08:00"
+                Value: 0.10
+            - Until:
+                Time: "22:00"
+                Value: 0.80
+            - Until:
+                Time: "24:00"
+                Value: 0.10
+          - For: Saturday
+            Times:
+            - Until:
+                Time: "08:00"
+                Value: 0.10
+            - Until:
+                Time: "22:00"
+                Value: 0.70
+            - Until:
+                Time: "24:00"
+                Value: 0.10
+          - For: AllOtherDays
+            Times:
+            - Until:
+                Time: "24:00"
+                Value: 0.10
+
+    # Lighting schedule: residential pattern
+    - Name: Lighting_Schedule
+      Schedule Type Limits Name: Fraction
+      Data:
+        - Through: "12/31"
+          Days:
+          - For: Weekdays
+            Times:
+            - Until:
+                Time: "08:00"
+                Value: 0.10
+            - Until:
+                Time: "22:00"
+                Value: 0.70
+            - Until:
+                Time: "24:00"
+                Value: 0.10
+          - For: Saturday
+            Times:
+            - Until:
+                Time: "08:00"
+                Value: 0.10
+            - Until:
+                Time: "22:00"
+                Value: 0.60
+            - Until:
+                Time: "24:00"
+                Value: 0.10
+          - For: AllOtherDays
+            Times:
+            - Until:
+                Time: "24:00"
+                Value: 0.10
+
+    # Equipment schedule: residential pattern
+    - Name: Equipment_Schedule
+      Schedule Type Limits Name: Fraction
+      Data:
+        - Through: "12/31"
+          Days:
+          - For: Weekdays
+            Times:
+            - Until:
+                Time: "08:00"
+                Value: 0.20
+            - Until:
+                Time: "22:00"
+                Value: 0.60
+            - Until:
+                Time: "24:00"
+                Value: 0.20
+          - For: Saturday
+            Times:
+            - Until:
+                Time: "08:00"
+                Value: 0.20
+            - Until:
+                Time: "22:00"
+                Value: 0.50
+            - Until:
+                Time: "24:00"
+                Value: 0.20
+          - For: AllOtherDays
+            Times:
+            - Until:
+                Time: "24:00"
+                Value: 0.20
+
+    # Activity level (residential)
+    - Name: Activity_Schedule
+      Schedule Type Limits Name: Any_Number
+      Data:
+        - Through: "12/31"
+          Days:
+          - For: AllDays
+            Times:
+            - Until:
+                Time: "24:00"
+                Value: 120
+
+    # HVAC availability: weekday 06:00-23:00, weekend 06:00-23:00
+    - Name: HVAC_Availability
+      Schedule Type Limits Name: On_Off
+      Data:
+        - Through: "12/31"
+          Days:
+          - For: Weekdays
+            Times:
+            - Until:
+                Time: "06:00"
+                Value: 0
+            - Until:
+                Time: "23:00"
+                Value: 1
+            - Until:
+                Time: "24:00"
+                Value: 0
+          - For: Saturday
+            Times:
+            - Until:
+                Time: "06:00"
+                Value: 0
+            - Until:
+                Time: "23:00"
+                Value: 1
+            - Until:
+                Time: "24:00"
+                Value: 0
+          - For: AllOtherDays
+            Times:
+            - Until:
+                Time: "24:00"
+                Value: 0
+
+    # Heating setpoint: 20°C occupied (08:00-22:00 weekday), 16°C otherwise
+    - Name: Heating_Setpoint
+      Schedule Type Limits Name: Temperature
+      Data:
+        - Through: "12/31"
+          Days:
+          - For: Weekdays
+            Times:
+            - Until:
+                Time: "08:00"
+                Value: 16
+            - Until:
+                Time: "22:00"
+                Value: 20
+            - Until:
+                Time: "24:00"
+                Value: 16
+          - For: AllOtherDays
+            Times:
+            - Until:
+                Time: "24:00"
+                Value: 16
+
+    # Cooling setpoint: 26°C occupied (08:00-22:00 weekday), 30°C otherwise
+    - Name: Cooling_Setpoint
+      Schedule Type Limits Name: Temperature
+      Data:
+        - Through: "12/31"
+          Days:
+          - For: Weekdays
+            Times:
+            - Until:
+                Time: "08:00"
+                Value: 30
+            - Until:
+                Time: "22:00"
+                Value: 26
+            - Until:
+                Time: "24:00"
+                Value: 30
+          - For: AllOtherDays
+            Times:
+            - Until:
+                Time: "24:00"
+                Value: 30
+
+# ==================================================================
+# HVAC
+# ==================================================================
+HVAC:
+  HVACTemplate:Thermostat:
+    - Name: Residential_Thermostat
+      Heating Setpoint Schedule Name: Heating_Setpoint
+      Cooling Setpoint Schedule Name: Cooling_Setpoint
+
+  HVACTemplate:Zone:IdealLoadsAirSystem:
+    - Zone Name: Zone_F1
+      Template Thermostat Name: Residential_Thermostat
+      System Availability Schedule Name: HVAC_Availability
+    - Zone Name: Zone_F2
+      Template Thermostat Name: Residential_Thermostat
+      System Availability Schedule Name: HVAC_Availability
+    - Zone Name: Zone_F3
+      Template Thermostat Name: Residential_Thermostat
+      System Availability Schedule Name: HVAC_Availability
+
+# ==================================================================
+# Lighting (from loads.lighting_power=6.0 W/m²)
+# ==================================================================
+Light:
+  - Name: Zone_F1_Light
+    Zone or ZoneList or Space or SpaceList Name: Zone_F1
+    Schedule Name: Lighting_Schedule
+    Design Level Calculation Method: Watts/Area
+    Lighting Level: 0.0
+    Watts per Floor Area: 6.0
+    Watts per Person: 0.0
+    Return Air Fraction: 0.2
+    Fraction Radiant: 0.42
+    Fraction Visible: 0.18
+    Fraction Replaceable: 1.0
+    End-Use Subcategory: General
+
+  - Name: Zone_F2_Light
+    Zone or ZoneList or Space or SpaceList Name: Zone_F2
+    Schedule Name: Lighting_Schedule
+    Design Level Calculation Method: Watts/Area
+    Lighting Level: 0.0
+    Watts per Floor Area: 6.0
+    Watts per Person: 0.0
+    Return Air Fraction: 0.2
+    Fraction Radiant: 0.42
+    Fraction Visible: 0.18
+    Fraction Replaceable: 1.0
+    End-Use Subcategory: General
+
+  - Name: Zone_F3_Light
+    Zone or ZoneList or Space or SpaceList Name: Zone_F3
+    Schedule Name: Lighting_Schedule
+    Design Level Calculation Method: Watts/Area
+    Lighting Level: 0.0
+    Watts per Floor Area: 6.0
+    Watts per Person: 0.0
+    Return Air Fraction: 0.2
+    Fraction Radiant: 0.42
+    Fraction Visible: 0.18
+    Fraction Replaceable: 1.0
+    End-Use Subcategory: General
+
+# ==================================================================
+# People (from loads.occupancy_density=0.02 ppl/m²)
+# ==================================================================
+People:
+  - Name: Zone_F1_People
+    Zone or ZoneList or Space or SpaceList Name: Zone_F1
+    Number of People Schedule Name: Occupancy_Schedule
+    Activity Level Schedule Name: Activity_Schedule
+    Number of People Calculation Method: People/Area
+    Number of People: 0
+    People per Floor Area: 0.02
+    Floor Area per Person: 0
+    Fraction Radiant: 0.30
+    Sensible Heat Fraction: autocalculate
+    Carbon Dioxide Generation Rate: 0.0000000382
+
+  - Name: Zone_F2_People
+    Zone or ZoneList or Space or SpaceList Name: Zone_F2
+    Number of People Schedule Name: Occupancy_Schedule
+    Activity Level Schedule Name: Activity_Schedule
+    Number of People Calculation Method: People/Area
+    Number of People: 0
+    People per Floor Area: 0.02
+    Floor Area per Person: 0
+    Fraction Radiant: 0.30
+    Sensible Heat Fraction: autocalculate
+    Carbon Dioxide Generation Rate: 0.0000000382
+
+  - Name: Zone_F3_People
+    Zone or ZoneList or Space or SpaceList Name: Zone_F3
+    Number of People Schedule Name: Occupancy_Schedule
+    Activity Level Schedule Name: Activity_Schedule
+    Number of People Calculation Method: People/Area
+    Number of People: 0
+    People per Floor Area: 0.02
+    Floor Area per Person: 0
+    Fraction Radiant: 0.30
+    Sensible Heat Fraction: autocalculate
+    Carbon Dioxide Generation Rate: 0.0000000382
+
+# ==================================================================
+# Electric Equipment (from loads.equipment_power=5.0 W/m²)
+# ==================================================================
+ElectricEquipment:
+  - Name: Zone_F1_Equipment
+    Zone or ZoneList or Space or SpaceList Name: Zone_F1
+    Schedule Name: Equipment_Schedule
+    Design Level Calculation Method: Watts/Area
+    Design Level: 0.0
+    Watts per Floor Area: 5.0
+    Watts per Person: 0.0
+    Fraction Latent: 0.0
+    Fraction Radiant: 0.30
+    Fraction Visible: 0.20
+    End-Use Subcategory: General
+
+  - Name: Zone_F2_Equipment
+    Zone or ZoneList or Space or SpaceList Name: Zone_F2
+    Schedule Name: Equipment_Schedule
+    Design Level Calculation Method: Watts/Area
+    Design Level: 0.0
+    Watts per Floor Area: 5.0
+    Watts per Person: 0.0
+    Fraction Latent: 0.0
+    Fraction Radiant: 0.30
+    Fraction Visible: 0.20
+    End-Use Subcategory: General
+
+  - Name: Zone_F3_Equipment
+    Zone or ZoneList or Space or SpaceList Name: Zone_F3
+    Schedule Name: Equipment_Schedule
+    Design Level Calculation Method: Watts/Area
+    Design Level: 0.0
+    Watts per Floor Area: 5.0
+    Watts per Person: 0.0
+    Fraction Latent: 0.0
+    Fraction Radiant: 0.30
+    Fraction Visible: 0.20
+    End-Use Subcategory: General
+
+# ==================================================================
+# Output
+# ==================================================================
+Output:VariableDictionary:
+  Key Field: regular
+Output:Diagnostics:
+  Key 1: DisplayExtraWarnings
+Output:Table:SummaryReports:
+  Report 1 Name: AllSummary
+OutputControl:Table:Style:
+  Column Separator: HTML
+Output:Variable:
+  - Key Value: "*"
+    Variable Name: Zone Mean Air Temperature
+    Reporting Frequency: Hourly
+  - Key Value: "*"
+    Variable Name: Zone Ideal Loads Supply Air Total Cooling Energy
+    Reporting Frequency: Hourly
+  - Key Value: "*"
+    Variable Name: Zone Ideal Loads Supply Air Total Heating Energy
+    Reporting Frequency: Hourly
