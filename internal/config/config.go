@@ -62,6 +62,16 @@ type ModulesConfig struct {
 	ParamAnalysis ModuleConfig `yaml:"param_analysis"`
 }
 
+// RAGConfig RAG 问答工具配置
+type RAGConfig struct {
+	IndexPath           string `yaml:"index_path"`            // .idx 文件路径
+	EmbeddingModel      string `yaml:"embedding_model"`        // Embedding 模型名（如 text-embedding-v4）
+	EmbeddingDim        int    `yaml:"embedding_dim"`          // 向量维度（如 1024）
+	TopK                int    `yaml:"top_k"`                  // 检索返回 Parent chunk 数量
+	HyDEEnabled         bool   `yaml:"hyde_enabled"`           // 是否开启 HyDE 双路检索
+	EmbeddingTimeoutSec int    `yaml:"embedding_timeout_sec"`  // Embedding API 超时秒数
+}
+
 // Config 全局配置根节点
 type Config struct {
 	LLM     LLMConfig     `yaml:"llm"`
@@ -69,6 +79,7 @@ type Config struct {
 	Log     LogConfig     `yaml:"log"`
 	Session SessionConfig `yaml:"session"`
 	Modules ModulesConfig `yaml:"modules"`
+	RAG     RAGConfig     `yaml:"rag"`
 }
 
 // Load 从指定路径加载配置文件，并用环境变量覆盖敏感值
@@ -155,6 +166,23 @@ func Load(path string) (*Config, error) {
 	}
 	if cfg.Modules.ParamAnalysis.MaxFixAttempts <= 0 {
 		cfg.Modules.ParamAnalysis.MaxFixAttempts = 3
+	}
+
+	// RAG 默认值
+	if cfg.RAG.EmbeddingModel == "" {
+		cfg.RAG.EmbeddingModel = "text-embedding-v4"
+	}
+	if cfg.RAG.EmbeddingDim <= 0 {
+		cfg.RAG.EmbeddingDim = 1024
+	}
+	if cfg.RAG.TopK <= 0 {
+		cfg.RAG.TopK = 5
+	}
+	if cfg.RAG.EmbeddingTimeoutSec <= 0 {
+		cfg.RAG.EmbeddingTimeoutSec = 30
+	}
+	if cfg.RAG.IndexPath == "" {
+		cfg.RAG.IndexPath = "data/index/ior_part.idx"
 	}
 
 	return cfg, nil

@@ -15,14 +15,16 @@ import (
 
 // StreamResult 流式读取的最终汇总结果
 type StreamResult struct {
-	Content   string     // 完整文本内容
-	ToolCalls []ToolCall // 完整的工具调用列表（拼接后）
-	Usage     Usage      // Token 用量（stream_options include_usage=true 时有效）
+	Content          string     // 完整文本内容
+	ReasoningContent string     // 完整思考过程（推理模型，如 Qwen3/DeepSeek-R1）
+	ToolCalls        []ToolCall // 完整的工具调用列表（拼接后）
+	Usage            Usage      // Token 用量（stream_options include_usage=true 时有效）
 }
 
 // ParseSSEStream 从 HTTP 响应体中解析 SSE 流式数据
-// onToken: 每收到一个文本 token 时的回调（用于实时打印）
-func ParseSSEStream(body io.Reader, onToken func(token string)) (*StreamResult, error) {
+// onToken:    每收到一个回答 token 时的回调（用于实时打印）
+// onThinking: 每收到一个思考 token 时的回调（推理模型专用，传 nil 则忽略）
+func ParseSSEStream(body io.Reader, onToken func(string), onThinking func(string)) (*StreamResult, error) {
 	result := &StreamResult{}
 	// toolCallsMap 按 index 累积 tool_calls 的 arguments
 	toolCallsMap := map[int]*ToolCall{}
@@ -68,6 +70,14 @@ func ParseSSEStream(body io.Reader, onToken func(token string)) (*StreamResult, 
 
 		choice := chunk.Choices[0]
 		delta := choice.Delta
+
+		// 处理思考过程（推理模型：reasoning_content 先于 content 到达）
+		if delta.ReasoningContent != "" {
+			result.ReasoningContent += delta.ReasoningContent
+			if onThinking != nil {
+				onThinking(delta.ReasoningContent)
+			}
+		}
 
 		// 处理文本内容
 		if delta.Content != "" {

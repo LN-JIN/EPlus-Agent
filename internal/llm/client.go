@@ -38,6 +38,9 @@ func NewClient(baseURL, apiKey, model string, timeoutSec int, temperature float6
 	}
 }
 
+// boolPtr 辅助函数：返回 bool 指针（用于 ChatRequest 可选字段）
+func boolPtr(b bool) *bool { return &b }
+
 // Chat 非流式调用（用于需要完整响应再处理的场景）
 func (c *Client) Chat(ctx context.Context, messages []Message, tools []Tool) (*Message, error) {
 	req := ChatRequest{
@@ -87,6 +90,54 @@ func (c *Client) Chat(ctx context.Context, messages []Message, tools []Tool) (*M
 	return &msg, nil
 }
 
+// ChatNoThink 非流式调用，强制关闭思考模式（用于中间步骤，如 HyDE 文档生成）
+// 避免推理模型在中间步骤消耗大量时间做思考
+func (c *Client) ChatNoThink(ctx context.Context, messages []Message, tools []Tool) (*Message, error) {
+	f := false
+	req := ChatRequest{
+		Model:          c.Model,
+		Messages:       messages,
+		Tools:          tools,
+		Stream:         false,
+		Temperature:    c.Temperature,
+		EnableThinking: &f,
+	}
+
+	slog.Debug("[LLM↑] 发送请求（无思考）", "messages", len(messages), "model", c.Model)
+
+	respBody, err := c.doRequest(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	defer respBody.Close()
+
+	body, err := io.ReadAll(respBody)
+	if err != nil {
+		return nil, fmt.Errorf("读取响应体失败: %w", err)
+	}
+
+	var errResp ErrorResponse
+	if json.Unmarshal(body, &errResp) == nil && errResp.Error.Message != "" {
+		return nil, fmt.Errorf("LLM API 错误: %s (type=%s)", errResp.Error.Message, errResp.Error.Type)
+	}
+
+	var chatResp ChatResponse
+	if err := json.Unmarshal(body, &chatResp); err != nil {
+		return nil, fmt.Errorf("解析 LLM 响应失败: %w\n原始响应: %s", err, string(body))
+	}
+
+	if len(chatResp.Choices) == 0 {
+		return nil, fmt.Errorf("LLM 返回空 choices")
+	}
+
+	msg := chatResp.Choices[0].Message
+	slog.Debug("[LLM↓] 收到响应（无思考）",
+		"finish_reason", chatResp.Choices[0].FinishReason,
+		"content_len", len(msg.Content),
+	)
+	return &msg, nil
+}
+
 // ChatStream 流式调用，通过 onToken 实时回调 token
 // onUsage: 流完成后回调 token 用量（传 nil 则忽略）
 // 返回的 Message 包含完整拼接后的 content 和 tool_calls
@@ -108,7 +159,7 @@ func (c *Client) ChatStream(ctx context.Context, messages []Message, tools []Too
 	}
 	defer respBody.Close()
 
-	result, err := ParseSSEStream(respBody, onToken)
+	result, err := ParseSSEStream(respBody, onToken, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -130,6 +181,50 @@ func (c *Client) ChatStream(ctx context.Context, messages []Message, tools []Too
 	}
 
 	return msg, nil
+}
+
+// ChatStreamEx 流式调用，额外支持 onThinking 回调捕获推理模型的思考过程
+// 适用于 Qwen3、DeepSeek-R1 等输出 reasoning_content 的模型
+func (c *Client) ChatStreamEx(ctx context.Context, messages []Message, tools []Tool, onToken func(string), onThinking func(string), onUsage func(Usage)) (*Message, *StreamResult, error) {
+	req := ChatRequest{
+		Model:         c.Model,
+		Messages:      messages,
+		Tools:         tools,
+		Stream:        true,
+		Temperature:   c.Temperature,
+		StreamOptions: &StreamOptions{IncludeUsage: true},
+	}
+
+	slog.Debug("[LLM↑] 发送流式请求（带思考）", "messages", len(messages), "tools", len(tools), "model", c.Model)
+
+	respBody, err := c.doRequest(ctx, req)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer respBody.Close()
+
+	result, err := ParseSSEStream(respBody, onToken, onThinking)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	msg := &Message{
+		Role:      RoleAssistant,
+		Content:   result.Content,
+		ToolCalls: result.ToolCalls,
+	}
+
+	slog.Debug("[LLM↓] 流式响应完成（带思考）",
+		"content_len", len(msg.Content),
+		"reasoning_len", len(result.ReasoningContent),
+		"total_tokens", result.Usage.TotalTokens,
+	)
+
+	if onUsage != nil && result.Usage.TotalTokens > 0 {
+		onUsage(result.Usage)
+	}
+
+	return msg, result, nil
 }
 
 // doRequest 发送 HTTP POST 请求，返回响应体（调用方负责关闭）

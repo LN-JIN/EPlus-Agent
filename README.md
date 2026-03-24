@@ -100,6 +100,12 @@
 <td>区分环境错误（不可修复）和内容错误（LLM 可修），避免在无效路径上浪费重试；连续 3 次相同错误自动终止，防止无限循环</td>
 </tr>
 <tr>
+<td align="center"><b>RAG<br>问答</b></td>
+<td align="center">📚</td>
+<td><b>混合检索问答</b></td>
+<td>独立 <code>cmd/ragqa</code> CLI，基于 EnergyPlus Input-Output Reference 文档，混合检索（向量余弦 + BM25 + RRF 融合），支持 HyDE 双路增强与多轮追问上下文复用</td>
+</tr>
+<tr>
 <td rowspan="3" align="center"><b>参数分析与<br>工程设计</b></td>
 <td align="center">⚡</td>
 <td><b>并发参数敏感性分析</b></td>
@@ -207,7 +213,7 @@
 
 ## 未来计划
 
-- [ ] **RAG 检索增强** — 提升报告生成的规范符合度
+- [ ] **RAG扩展文档覆盖** — 接入完整 EnergyPlus 文档与工程师参考手册
 - [ ] **多气候区天气文件** — 内置主要城市 EPW，支持一键切换气候区对比
 - [ ] **建筑类型模板** — 预置办公、住宅、商业、学校等典型建筑基础模板
 - [ ] **Web UI** — 提供浏览器端可视化界面，展示仿真进度与报告
@@ -304,7 +310,8 @@ output/
 ```
 EPlus-Agent/
 ├── cmd/
-│   └── main.go                   # CLI 入口，flag 解析
+│   ├── main.go                   # CLI 入口，flag 解析
+│   └── ragqa/                    # 独立 RAG 问答 CLI
 ├── configs/
 │   ├── config.yaml.example       # 配置模板（安全，可提交）
 │   └── config.yaml               # 本地配置（含密钥，已 gitignore）
@@ -321,6 +328,8 @@ EPlus-Agent/
 │   ├── tools/                    # LLM 工具注册表
 │   ├── orchestrator/             # 主流程编排
 │   ├── session/                  # 会话状态与 PhaseModule 接口
+│   ├── rag/                      # RAG 问答（向量检索、BM25、HyDE、RRF）
+│   │   └── vectorstore/          # 向量库加载与检索
 │   ├── llm/                      # LLM 客户端（OpenAI 兼容 + SSE 流）
 │   ├── eplusrun/                 # EPlus-MCP 子进程封装
 │   ├── fault/                    # 错误分类与重试策略

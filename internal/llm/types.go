@@ -56,13 +56,14 @@ type StreamOptions struct {
 
 // ChatRequest 向 LLM 发送的请求体
 type ChatRequest struct {
-	Model         string         `json:"model"`
-	Messages      []Message      `json:"messages"`
-	Tools         []Tool         `json:"tools,omitempty"`
-	Stream        bool           `json:"stream"`
-	Temperature   float64        `json:"temperature,omitempty"`
-	MaxTokens     int            `json:"max_tokens,omitempty"`
-	StreamOptions *StreamOptions `json:"stream_options,omitempty"`
+	Model          string         `json:"model"`
+	Messages       []Message      `json:"messages"`
+	Tools          []Tool         `json:"tools,omitempty"`
+	Stream         bool           `json:"stream"`
+	Temperature    float64        `json:"temperature,omitempty"`
+	MaxTokens      int            `json:"max_tokens,omitempty"`
+	StreamOptions  *StreamOptions `json:"stream_options,omitempty"`
+	EnableThinking *bool          `json:"enable_thinking,omitempty"` // Qwen3 思考模式开关（nil=模型默认，false=关闭）
 }
 
 // Choice 非流式响应中的单个选项
@@ -90,9 +91,10 @@ type ChatResponse struct {
 
 // StreamDelta 流式 chunk 中的增量内容
 type StreamDelta struct {
-	Role      string     `json:"role,omitempty"`
-	Content   string     `json:"content,omitempty"`
-	ToolCalls []ToolCall `json:"tool_calls,omitempty"`
+	Role             string     `json:"role,omitempty"`
+	Content          string     `json:"content,omitempty"`
+	ReasoningContent string     `json:"reasoning_content,omitempty"` // 思考过程（Qwen3/DeepSeek-R1 等推理模型）
+	ToolCalls        []ToolCall `json:"tool_calls,omitempty"`
 }
 
 // StreamChoice 流式响应中的单个选项

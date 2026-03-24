@@ -1,0 +1,4 @@
+pdfplumber
+tiktoken
+dashscope
+tqdm

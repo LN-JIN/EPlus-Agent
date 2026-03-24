@@ -34,7 +34,13 @@ func (n *NoopRetriever) Query(_ context.Context, _ string, _ int) ([]Document, e
 
 // FormatDocs 将检索到的文档列表格式化为文本块，注入 LLM prompt
 // 若文档为空，返回空字符串（不影响 prompt）
+// 最多展示 3 条，如需更多请使用 FormatDocsN
 func FormatDocs(docs []Document) string {
+	return FormatDocsN(docs, 3)
+}
+
+// FormatDocsN 将检索到的文档列表格式化为文本块，最多展示 n 条
+func FormatDocsN(docs []Document, n int) string {
 	if len(docs) == 0 {
 		return ""
 	}
@@ -45,8 +51,7 @@ func FormatDocs(docs []Document) string {
 			result += "来源: " + doc.Source + "\n"
 		}
 		result += "内容:\n" + doc.Content
-		if i >= 2 {
-			// 避免 prompt 过长，最多展示 3 条
+		if i >= n-1 {
 			break
 		}
 	}
