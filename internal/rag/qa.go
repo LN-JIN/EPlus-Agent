@@ -78,12 +78,16 @@ func (q *QAEngine) Retrieve(ctx context.Context, query string) (*RetrievedContex
 		hydeText = result.HyDEText
 
 		// 两路向量检索（HyDE + 直接），结果合并后 RRF
-		hydeChildIdxs := q.store.VectorSearch(result.HyDEVec, retrievalTopK)
-		directChildIdxs := q.store.VectorSearch(result.DirectVec, retrievalTopK)
+		// HyDE 降级时只做一次直接检索，避免冗余搜索
+		var mergedVectorIdxs []int
+		if result.HyDEFailed {
+			mergedVectorIdxs = q.store.VectorSearch(result.DirectVec, retrievalTopK)
+		} else {
+			hydeChildIdxs := q.store.VectorSearch(result.HyDEVec, retrievalTopK)
+			directChildIdxs := q.store.VectorSearch(result.DirectVec, retrievalTopK)
+			mergedVectorIdxs = dedup(append(hydeChildIdxs, directChildIdxs...))
+		}
 		bm25ChildIdxs := q.store.BM25Search(query, retrievalTopK)
-
-		// 将 HyDE 和直接向量检索结果合并（先 HyDE 后 direct，RRF 会自动处理重复）
-		mergedVectorIdxs := dedup(append(hydeChildIdxs, directChildIdxs...))
 
 		parentIdxs := vectorstore.RRFMerge(
 			mergedVectorIdxs,

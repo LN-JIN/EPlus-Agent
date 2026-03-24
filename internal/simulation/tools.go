@@ -205,29 +205,30 @@ func registerSimTools(
 }
 
 // readIDFObjectViaCLI 通过 EPlus-MCP CLI 读取 IDF 对象字段
-// 使用 python -c 调用 eppy 读取对象，返回 JSON 格式
+// 调用 read-idf 命令，返回指定类型（可选按 name 过滤）的对象字段 JSON
 func readIDFObjectViaCLI(ctx context.Context, runner *eplusrun.Runner, idfPath, objectType, name string) (string, error) {
-	// 通过 edit-idf 的 validate 逻辑，我们无直接读取命令；
-	// 用 validate-idf 获取基本信息，更复杂的读取通过 python helper
-	// 当前版本：通过 validate-idf 确认文件可读，然后返回对象类型提示
-	// TODO: 将来可在 EPlus-MCP 中增加 read-idf 命令以支持精确字段读取
-	valid, msg, err := runner.ValidateIDF(ctx, idfPath)
+	jsonStr, err := runner.ReadIDFObjects(ctx, idfPath, objectType)
 	if err != nil {
 		return "", fmt.Errorf("IDF 读取失败: %w", err)
 	}
-	if !valid {
-		return "", fmt.Errorf("IDF 无效: %s", msg)
+
+	// 若未指定 name，直接返回全部对象
+	if name == "" {
+		return jsonStr, nil
 	}
 
-	result := map[string]any{
-		"note":        "当前实现通过 validate-idf 确认 IDF 可读；精确字段读取需 EPlus-MCP 增加 read-idf 命令",
-		"idf_path":    idfPath,
-		"object_type": objectType,
-		"name":        name,
-		"idf_valid":   msg,
+	// 按 name 过滤，返回匹配的单个对象
+	var objs []map[string]any
+	if err := json.Unmarshal([]byte(jsonStr), &objs); err != nil {
+		return jsonStr, nil // 解析失败则原样返回
 	}
-	data, _ := json.Marshal(result)
-	return string(data), nil
+	for _, obj := range objs {
+		if n, _ := obj["name"].(string); strings.EqualFold(n, name) {
+			data, _ := json.Marshal(obj)
+			return string(data), nil
+		}
+	}
+	return fmt.Sprintf(`{"error":"未找到对象","object_type":%q,"name":%q}`, objectType, name), nil
 }
 
 // copyFile 复制文件

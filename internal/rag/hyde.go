@@ -13,7 +13,7 @@ import (
 )
 
 const hydeSystemPrompt = `你是一位 EnergyPlus 输入输出参考手册（Input-Output Reference）专家。
-请根据用户问题，生成一段简短的参考手册风格段落（100-200字），用于帮助检索相关文档。
+请根据用户问题，生成一段简短的参考手册风格段落（100-200 words），用于帮助检索相关文档。
 
 要求：
 - 如涉及 IDD 对象，使用准确的对象名（如 BuildingSurface:Detailed）
@@ -24,9 +24,10 @@ const hydeSystemPrompt = `你是一位 EnergyPlus 输入输出参考手册（Inp
 
 // HyDEResult HyDE + 直接 embedding 的双路结果
 type HyDEResult struct {
-	HyDEVec  []float32 // HyDE 假设文档的 embedding
-	DirectVec []float32 // 原始查询的 embedding
-	HyDEText  string    // 生成的假设文档（供调试）
+	HyDEVec    []float32 // HyDE 假设文档的 embedding
+	DirectVec  []float32 // 原始查询的 embedding
+	HyDEText   string    // 生成的假设文档（供调试）
+	HyDEFailed bool      // HyDE 生成失败，已降级为直接 embedding（HyDEVec == DirectVec）
 }
 
 // HyDEEmbedder 实现 HyDE 双路检索
@@ -90,8 +91,12 @@ func (h *HyDEEmbedder) Embed(ctx context.Context, query string) (*HyDEResult, er
 	// HyDE 失败时降级
 	if hydeErr != nil {
 		slog.Warn("[HyDE] 生成失败，降级为直接 embedding", "err", hydeErr)
-		hydeVec = directVec
-		hydeText = ""
+		return &HyDEResult{
+			HyDEVec:    directVec,
+			DirectVec:  directVec,
+			HyDEText:   "",
+			HyDEFailed: true,
+		}, nil
 	}
 
 	return &HyDEResult{
