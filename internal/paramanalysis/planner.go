@@ -27,14 +27,16 @@ import (
 
 // Planner 负责通过 ReAct 循环生成参数变体方案
 type Planner struct {
+	log       *slog.Logger
 	llmClient *llm.Client
 	runner    *eplusrun.Runner
 	cfg       *config.Config
 }
 
 // NewPlanner 创建 Planner
-func NewPlanner(llmClient *llm.Client, runner *eplusrun.Runner, cfg *config.Config) *Planner {
+func NewPlanner(llmClient *llm.Client, runner *eplusrun.Runner, cfg *config.Config, log *slog.Logger) *Planner {
 	return &Planner{
+		log:       log,
 		llmClient: llmClient,
 		runner:    runner,
 		cfg:       cfg,
@@ -51,7 +53,7 @@ func (p *Planner) Plan(
 	ctx context.Context,
 	analysisGoal, intentSummary, baseIDFPath, baselineReport, sessionID string,
 ) ([]ParamVariation, int, error) {
-	slog.Info("[Planner] 开始规划", "goal", analysisGoal, "idf", baseIDFPath)
+	p.log.Info("[Planner] 开始规划", "goal", analysisGoal, "idf", baseIDFPath)
 
 	// ── 构建工具注册表 ──────────────────────────────────────────────────
 	registry := tools.NewRegistry()
@@ -149,7 +151,7 @@ func (p *Planner) Plan(
 			})
 		}
 		if writeErr := logger.WriteReActLog(logPath, "paramanalysis_planner", sessionID, steps); writeErr != nil {
-			slog.Warn("[Planner] ReAct 日志写入失败", "err", writeErr)
+			p.log.Warn("[Planner] ReAct 日志写入失败", "err", writeErr)
 		}
 	}
 
@@ -158,14 +160,14 @@ func (p *Planner) Plan(
 		if len(captured) == 0 {
 			return nil, plannerTokens, fmt.Errorf("Planner ReAct 失败且未收到变体方案: %w", err)
 		}
-		slog.Warn("[Planner] ReAct 超限，使用已捕获的变体", "variations", len(captured))
+		p.log.Warn("[Planner] ReAct 超限，使用已捕获的变体", "variations", len(captured))
 	}
 
 	if len(captured) == 0 {
 		return nil, plannerTokens, fmt.Errorf("Planner 未调用 submit_variations，无变体方案")
 	}
 
-	slog.Info("[Planner] 规划完成", "variations", len(captured), "react_iters", len(result.Steps))
+	p.log.Info("[Planner] 规划完成", "variations", len(captured), "react_iters", len(result.Steps))
 	return captured, plannerTokens, nil
 }
 

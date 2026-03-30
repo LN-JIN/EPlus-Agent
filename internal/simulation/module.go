@@ -21,18 +21,20 @@ import (
 
 // Module Phase 4 仿真运行模块
 type Module struct {
+	log   *slog.Logger
 	agent *Agent
 	cfg   *config.Config
 }
 
 // New 创建 Phase 4 仿真模块
-func New(runner *eplusrun.Runner, llmClient *llm.Client, cfg *config.Config) *Module {
+func New(runner *eplusrun.Runner, llmClient *llm.Client, cfg *config.Config, log *slog.Logger) *Module {
 	maxFix := cfg.Modules.Simulation.MaxFixAttempts
 	if maxFix <= 0 {
 		maxFix = 10
 	}
 	return &Module{
-		agent: NewAgent(runner, llmClient, cfg, maxFix),
+		log:   log,
+		agent: NewAgent(runner, llmClient, cfg, maxFix, log),
 		cfg:   cfg,
 	}
 }
@@ -69,7 +71,7 @@ func (m *Module) Run(ctx context.Context, state *session.SessionState) error {
 		if errMsg == "" {
 			errMsg = "仿真失败（未知原因）"
 		}
-		slog.Warn("[Sim Module] 仿真失败", "fix_attempts", result.FixAttempts, "err", errMsg)
+		m.log.Warn("[Sim Module] 仿真失败", "fix_attempts", result.FixAttempts, "err", errMsg)
 		ui.PrintWarning(fmt.Sprintf("仿真失败（修复 %d 次后仍未成功）: %s", result.FixAttempts, errMsg))
 		// 不返回 error — 允许流程继续（Phase 5 仍可读取已有仿真结果）
 		state.FailureReason = errMsg
@@ -85,7 +87,7 @@ func (m *Module) Run(ctx context.Context, state *session.SessionState) error {
 	)
 
 	ui.PrintSuccess(fmt.Sprintf("仿真完成 (修复 %d 次): %s", result.FixAttempts, result.SimOutDir))
-	slog.Info("[Sim Module] Phase 4 完成",
+	m.log.Info("[Sim Module] Phase 4 完成",
 		"idf", result.IDFPath,
 		"sim_out", result.SimOutDir,
 		"fix_attempts", result.FixAttempts,

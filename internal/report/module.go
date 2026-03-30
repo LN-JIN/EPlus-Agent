@@ -22,13 +22,14 @@ import (
 
 // Module Phase 5 报告解读模块
 type Module struct {
+	log       *slog.Logger
 	llmClient *llm.Client
 	cfg       *config.Config
 }
 
 // New 创建 Phase 5 报告模块
-func New(llmClient *llm.Client, cfg *config.Config) *Module {
-	return &Module{llmClient: llmClient, cfg: cfg}
+func New(llmClient *llm.Client, cfg *config.Config, log *slog.Logger) *Module {
+	return &Module{log: log, llmClient: llmClient, cfg: cfg}
 }
 
 func (m *Module) Name() string { return string(session.PhaseReportReading) }
@@ -39,25 +40,25 @@ func (m *Module) Run(ctx context.Context, state *session.SessionState) error {
 	logger.Phase("阶段 5/6", "报告解读 — 读取仿真结果，生成能耗分析报告")
 
 	if state.SimOutDir == "" {
-		slog.Warn("[Report] SimOutDir 为空，跳过报告生成")
+		m.log.Warn("[Report] SimOutDir 为空，跳过报告生成")
 		return nil
 	}
 
 	// 读取仿真数据
 	data, err := ReadSimData(state.SimOutDir)
 	if err != nil {
-		slog.Warn("[Report] 读取仿真数据失败", "err", err)
+		m.log.Warn("[Report] 读取仿真数据失败", "err", err)
 		ui.PrintWarning(fmt.Sprintf("无法读取仿真数据: %v", err))
 		return nil // 不阻断流程
 	}
 
-	slog.Info("[Report] 仿真数据读取成功", "source", data.Source, "summary_keys", len(data.Summary))
+	m.log.Info("[Report] 仿真数据读取成功", "source", data.Source, "summary_keys", len(data.Summary))
 
 	// LLM 一次性生成分析摘要
 	analysis, sumTokens, err := Summarize(ctx, m.llmClient, data, state.IntentSummary, "")
 	state.AddTokens(sumTokens)
 	if err != nil {
-		slog.Warn("[Report] LLM 分析失败", "err", err)
+		m.log.Warn("[Report] LLM 分析失败", "err", err)
 		analysis = fmt.Sprintf("*LLM 分析失败: %v*\n\n**原始数据摘要:**\n\n```\n%s\n```",
 			err, FormatSummaryText(data))
 	}
@@ -83,12 +84,12 @@ func (m *Module) Run(ctx context.Context, state *session.SessionState) error {
 	}
 
 	if writeErr := WriteReport(reportPath, "能耗分析报告 — "+buildingTitle, sections); writeErr != nil {
-		slog.Warn("[Report] 写入报告失败", "err", writeErr)
+		m.log.Warn("[Report] 写入报告失败", "err", writeErr)
 		return nil
 	}
 
 	state.ReportPath = reportPath
 	ui.PrintSuccess(fmt.Sprintf("报告已生成: %s", reportPath))
-	slog.Info("[Report] Phase 5 完成", "report_path", reportPath)
+	m.log.Info("[Report] Phase 5 完成", "report_path", reportPath)
 	return nil
 }

@@ -22,6 +22,7 @@ import (
 
 // CollectModule 封装意图收集（Phase 1）
 type CollectModule struct {
+	log         *slog.Logger
 	llmClient   *llm.Client
 	retriever   rag.Retriever
 	skillLoader *skills.Loader
@@ -34,8 +35,10 @@ func NewCollectModule(
 	retriever rag.Retriever,
 	skillLoader *skills.Loader,
 	cfg *config.Config,
+	log *slog.Logger,
 ) *CollectModule {
 	return &CollectModule{
+		log:         log,
 		llmClient:   llmClient,
 		retriever:   retriever,
 		skillLoader: skillLoader,
@@ -74,7 +77,7 @@ func (m *CollectModule) Run(ctx context.Context, state *session.SessionState) er
 	// 生成自然语言摘要（注入后续阶段 SystemPrompt）
 	state.IntentSummary = buildIntentSummary(buildingIntent)
 
-	slog.Info("[IntentModule] Phase 1 完成",
+	m.log.Info("[IntentModule] Phase 1 完成",
 		"building", buildingIntent.Building.Name,
 		"city", buildingIntent.Building.City,
 	)
@@ -103,13 +106,14 @@ func buildIntentSummary(b *BuildingIntent) string {
 
 // GenerateModule 封装 YAML 生成（Phase 2）
 type GenerateModule struct {
+	log       *slog.Logger
 	llmClient *llm.Client
 	cfg       *config.Config
 }
 
 // NewGenerateModule 创建 YAML 生成模块
-func NewGenerateModule(llmClient *llm.Client, cfg *config.Config) *GenerateModule {
-	return &GenerateModule{llmClient: llmClient, cfg: cfg}
+func NewGenerateModule(llmClient *llm.Client, cfg *config.Config, log *slog.Logger) *GenerateModule {
+	return &GenerateModule{log: log, llmClient: llmClient, cfg: cfg}
 }
 
 func (m *GenerateModule) Name() string { return string(session.PhaseYAMLGenerating) }
@@ -141,6 +145,6 @@ func (m *GenerateModule) Run(ctx context.Context, state *session.SessionState) e
 	state.YAMLPath = yamlPath
 	state.AddSnapshot("initial_yaml", yamlPath)
 
-	slog.Info("[GenerateModule] Phase 2 完成", "yaml_path", yamlPath)
+	m.log.Info("[GenerateModule] Phase 2 完成", "yaml_path", yamlPath)
 	return nil
 }

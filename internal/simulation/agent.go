@@ -37,6 +37,7 @@ type SimResult struct {
 
 // Agent 可复用的仿真+修复 ReAct Agent
 type Agent struct {
+	log       *slog.Logger
 	runner    *eplusrun.Runner
 	llmClient *llm.Client
 	maxFix    int
@@ -52,8 +53,10 @@ func NewAgent(
 	llmClient *llm.Client,
 	cfg *config.Config,
 	maxFix int,
+	log *slog.Logger,
 ) *Agent {
 	return &Agent{
+		log:       log,
 		runner:    runner,
 		llmClient: llmClient,
 		maxFix:    maxFix,
@@ -112,14 +115,14 @@ func (a *Agent) RunWithRepair(
 
 		// 环境致命错误（EPW 缺失、EnergyPlus 不可用等）— 立即终止
 		if fault.IsFatal(simErr) {
-			slog.Error("[Sim Agent] 检测到环境致命错误，终止修复", "err", simErr)
+			a.log.Error("[Sim Agent] 检测到环境致命错误，终止修复", "err", simErr)
 			result.Error = fmt.Sprintf("环境配置错误（无法自动修复）: %v", simErr)
 			return result, nil
 		}
 
 		// 输出目录不存在 → 仿真进程根本未启动，属于运行环境问题，修改 IDF 无意义
 		if checkResult != nil && !checkResult.DirExists {
-			slog.Error("[Sim Agent] 仿真输出目录未创建，疑似运行环境问题，终止修复",
+			a.log.Error("[Sim Agent] 仿真输出目录未创建，疑似运行环境问题，终止修复",
 				"expected_dir", simOutDir, "sim_err", simErr)
 			errMsg := "仿真输出目录未创建，仿真进程可能未正常启动。请检查：\n" +
 				"  1. EnergyPlus 是否已安装并可执行\n" +
@@ -144,7 +147,7 @@ func (a *Agent) RunWithRepair(
 			return result, nil // 不返回 error，由调用方判断 result.Success
 		}
 
-		slog.Info(fmt.Sprintf("[Sim Agent] 仿真修复 %d/%d", attempt, maxFix), "sim_err", simErr)
+		a.log.Info("[Sim Agent] 仿真修复", "attempt", attempt, "max_fix", maxFix, "sim_err", simErr)
 
 		// 空转检测：用 EnergyPlus 错误摘要（比 simErr 更精确）做指纹
 		errFingerprint := ""
@@ -155,7 +158,7 @@ func (a *Agent) RunWithRepair(
 		}
 		spinning, hint := guard.Observe(errFingerprint)
 		if spinning {
-			slog.Warn("[Sim Agent] 检测到修复空转，终止重试", "hint", hint)
+			a.log.Warn("[Sim Agent] 检测到修复空转，终止重试", "hint", hint)
 			result.Error = fmt.Sprintf("仿真修复空转（相同错误连续出现）: %s", errFingerprint)
 			return result, nil
 		}
@@ -164,7 +167,7 @@ func (a *Agent) RunWithRepair(
 		fixedIDF, repairTokens, fixErr := a.repairWithReAct(ctx, idfPath, snapshotDir, simOutDir, intentSummary, attempt, hint, state)
 		result.TotalTokens += repairTokens
 		if fixErr != nil {
-			slog.Warn("[Sim Agent] ReAct 修复失败，停止重试", "err", fixErr)
+			a.log.Warn("[Sim Agent] ReAct 修复失败，停止重试", "err", fixErr)
 			result.Error = fixErr.Error()
 			return result, nil
 		}
@@ -265,7 +268,7 @@ Workflow:
 			})
 		}
 		if writeErr := logger.WriteReActLog(logPath, "simulation_repair", a.sessionID, steps); writeErr != nil {
-			slog.Warn("[Sim Agent] ReAct 日志写入失败", "err", writeErr)
+			a.log.Warn("[Sim Agent] ReAct 日志写入失败", "err", writeErr)
 		}
 	}
 

@@ -33,19 +33,20 @@ func RunWorker(
 	runner *eplusrun.Runner,
 	llmClient *llm.Client,
 	cfg *config.Config,
+	log *slog.Logger,
 ) WorkerResult {
 	result := WorkerResult{
 		Label:       variation.Label,
 		Description: variation.Description,
 	}
 
-	slog.Info("[Worker] 开始", "label", variation.Label, "edits", len(variation.Edits))
+	log.Info("[Worker] 开始", "label", variation.Label, "edits", len(variation.Edits))
 
 	// ── Step 1: 创建变体工作目录 ──────────────────────────────────────
 	varDir := filepath.Join(workerBaseDir, variation.Label)
 	if err := os.MkdirAll(varDir, 0o755); err != nil {
 		result.Error = fmt.Sprintf("创建工作目录失败: %v", err)
-		slog.Warn("[Worker] 创建工作目录失败", "label", variation.Label, "err", err)
+		log.Warn("[Worker] 创建工作目录失败", "label", variation.Label, "err", err)
 		return result
 	}
 
@@ -53,13 +54,13 @@ func RunWorker(
 	varIDFPath := filepath.Join(varDir, variation.Label+".idf")
 	if err := copyFile(baseIDFPath, varIDFPath); err != nil {
 		result.Error = fmt.Sprintf("复制 IDF 失败: %v", err)
-		slog.Warn("[Worker] 复制 IDF 失败", "label", variation.Label, "err", err)
+		log.Warn("[Worker] 复制 IDF 失败", "label", variation.Label, "err", err)
 		return result
 	}
 
 	// ── Step 3: 应用 IDFEdit ─────────────────────────────────────────
 	for _, edit := range variation.Edits {
-		slog.Debug("[Worker] 应用 IDFEdit",
+		log.Debug("[Worker] 应用 IDFEdit",
 			"label", variation.Label,
 			"object_type", edit.ObjectType,
 			"name", edit.Name,
@@ -68,19 +69,19 @@ func RunWorker(
 		)
 		if err := runner.EditIDF(ctx, varIDFPath, edit.ObjectType, edit.Name, edit.Field, edit.Value); err != nil {
 			result.Error = fmt.Sprintf("应用 IDFEdit 失败 [%s.%s]: %v", edit.Name, edit.Field, err)
-			slog.Warn("[Worker] IDFEdit 失败", "label", variation.Label, "edit", edit.Field, "err", err)
+			log.Warn("[Worker] IDFEdit 失败", "label", variation.Label, "edit", edit.Field, "err", err)
 			return result
 		}
 	}
 
-	slog.Info("[Worker] IDF 复制并编辑完成", "label", variation.Label, "idf", varIDFPath)
+	log.Info("[Worker] IDF 复制并编辑完成", "label", variation.Label, "idf", varIDFPath)
 
 	// ── Step 4: 运行仿真（带 LLM 修复）─────────────────────────────
 	maxFix := cfg.Modules.ParamAnalysis.MaxFixAttempts
 	if maxFix <= 0 {
 		maxFix = 3
 	}
-	simAgent := simulation.NewAgent(runner, llmClient, cfg, maxFix)
+	simAgent := simulation.NewAgent(runner, llmClient, cfg, maxFix, log)
 
 	simOutBase := filepath.Join(varDir, "sim")
 	simResult, err := simAgent.RunWithRepair(
@@ -93,7 +94,7 @@ func RunWorker(
 	)
 	if err != nil {
 		result.Error = fmt.Sprintf("仿真运行异常: %v", err)
-		slog.Warn("[Worker] 仿真异常", "label", variation.Label, "err", err)
+		log.Warn("[Worker] 仿真异常", "label", variation.Label, "err", err)
 		return result
 	}
 
@@ -106,11 +107,11 @@ func RunWorker(
 		if result.Error == "" {
 			result.Error = "仿真失败（未知原因）"
 		}
-		slog.Warn("[Worker] 仿真失败", "label", variation.Label, "fix_attempts", simResult.FixAttempts, "err", result.Error)
+		log.Warn("[Worker] 仿真失败", "label", variation.Label, "fix_attempts", simResult.FixAttempts, "err", result.Error)
 		return result
 	}
 
-	slog.Info("[Worker] 仿真完成",
+	log.Info("[Worker] 仿真完成",
 		"label", variation.Label,
 		"sim_out", simResult.SimOutDir,
 		"fix_attempts", simResult.FixAttempts,
@@ -120,7 +121,7 @@ func RunWorker(
 	if simResult.SimOutDir != "" {
 		data, err := report.ReadSimData(simResult.SimOutDir)
 		if err != nil {
-			slog.Warn("[Worker] 读取仿真数据失败", "label", variation.Label, "err", err)
+			log.Warn("[Worker] 读取仿真数据失败", "label", variation.Label, "err", err)
 			// 指标读取失败不阻断——仿真本身成功，保留 success=true
 		} else {
 			result.Metrics = data.Summary

@@ -33,6 +33,7 @@ import (
 
 // Module Phase 6 参数分析模块，实现 session.PhaseModule 接口
 type Module struct {
+	log          *slog.Logger
 	runner       *eplusrun.Runner
 	llmClient    *llm.Client
 	cfg          *config.Config
@@ -41,8 +42,9 @@ type Module struct {
 
 // New 创建 Phase 6 参数分析模块
 // analysisGoal 为空字符串时，Run() 会交互式询问用户
-func New(runner *eplusrun.Runner, llmClient *llm.Client, cfg *config.Config, analysisGoal string) *Module {
+func New(runner *eplusrun.Runner, llmClient *llm.Client, cfg *config.Config, analysisGoal string, log *slog.Logger) *Module {
 	return &Module{
+		log:          log,
 		runner:       runner,
 		llmClient:    llmClient,
 		cfg:          cfg,
@@ -58,11 +60,11 @@ func (m *Module) Run(ctx context.Context, state *session.SessionState) error {
 
 	// ── 前提检查 ──────────────────────────────────────────────────────
 	if state.IDFPath == "" {
-		slog.Warn("[ParamAnalysis] IDFPath 为空，跳过参数分析")
+		m.log.Warn("[ParamAnalysis] IDFPath 为空，跳过参数分析")
 		return nil
 	}
 
-	slog.Info("[ParamAnalysis] Phase 6 开始", "idf", state.IDFPath)
+	m.log.Info("[ParamAnalysis] Phase 6 开始", "idf", state.IDFPath)
 
 	// ── Step 1: 获取分析目标 ─────────────────────────────────────────
 	analysisGoal := m.analysisGoal
@@ -74,7 +76,7 @@ func (m *Module) Run(ctx context.Context, state *session.SessionState) error {
 		return nil
 	}
 
-	slog.Info("[ParamAnalysis] 分析目标确定", "goal", analysisGoal)
+	m.log.Info("[ParamAnalysis] 分析目标确定", "goal", analysisGoal)
 
 	// ── Step 2: 读取 Phase 5 基线报告 ────────────────────────────────
 	baselineReport := ""
@@ -86,7 +88,7 @@ func (m *Module) Run(ctx context.Context, state *session.SessionState) error {
 
 	// ── Step 3: Planner 生成变体方案 ──────────────────────────────────
 	ui.PrintInfo("Planner 正在规划参数变体方案...")
-	planner := NewPlanner(m.llmClient, m.runner, m.cfg)
+	planner := NewPlanner(m.llmClient, m.runner, m.cfg, m.log)
 	variations, plannerTokens, err := planner.Plan(
 		ctx,
 		analysisGoal,
@@ -100,7 +102,7 @@ func (m *Module) Run(ctx context.Context, state *session.SessionState) error {
 		return fmt.Errorf("Planner 规划失败: %w", err)
 	}
 
-	slog.Info("[ParamAnalysis] Planner 规划完成", "variations", len(variations))
+	m.log.Info("[ParamAnalysis] Planner 规划完成", "variations", len(variations))
 	ui.PrintSuccess(fmt.Sprintf("Planner 生成 %d 个变体方案", len(variations)))
 
 	// ── Step 4: 并发执行 Workers ──────────────────────────────────────
@@ -113,7 +115,7 @@ func (m *Module) Run(ctx context.Context, state *session.SessionState) error {
 		maxWorkers = 3
 	}
 
-	slog.Info("[ParamAnalysis] 启动并发 Workers",
+	m.log.Info("[ParamAnalysis] 启动并发 Workers",
 		"total", len(variations), "max_workers", maxWorkers)
 	ui.PrintInfo(fmt.Sprintf("启动 %d 个 Worker（最多 %d 并发）...", len(variations), maxWorkers))
 
@@ -126,7 +128,7 @@ func (m *Module) Run(ctx context.Context, state *session.SessionState) error {
 		}
 		state.AddTokens(r.TokensUsed) // 汇总各 Worker 的 token 消耗
 	}
-	slog.Info("[ParamAnalysis] Workers 完成",
+	m.log.Info("[ParamAnalysis] Workers 完成",
 		"total", len(results), "success", successCount, "failed", len(results)-successCount)
 	ui.PrintInfo(fmt.Sprintf("Workers 完成: %d/%d 成功", successCount, len(results)))
 
@@ -141,7 +143,7 @@ func (m *Module) Run(ctx context.Context, state *session.SessionState) error {
 	reportTokens, err := m.generateReport(ctx, results, analysisGoal, state.IntentSummary, reportPath, baselineWarning)
 	state.AddTokens(reportTokens)
 	if err != nil {
-		slog.Warn("[ParamAnalysis] 报告写入失败", "err", err)
+		m.log.Warn("[ParamAnalysis] 报告写入失败", "err", err)
 		// 非致命，与 Phase 5 一致
 		return nil
 	}
@@ -151,7 +153,7 @@ func (m *Module) Run(ctx context.Context, state *session.SessionState) error {
 	state.ParamDoneAt = time.Now()
 
 	ui.PrintSuccess(fmt.Sprintf("参数分析报告已生成: %s", reportPath))
-	slog.Info("[ParamAnalysis] Phase 6 完成",
+	m.log.Info("[ParamAnalysis] Phase 6 完成",
 		"report_path", reportPath,
 		"variations", len(variations),
 		"success_count", successCount,
@@ -187,7 +189,7 @@ func (m *Module) runWorkers(
 			defer func() { <-sem }()
 
 			results[idx] = RunWorker(ctx, variation, baseIDFPath, workerBaseDir, epwPath,
-				m.runner, m.llmClient, m.cfg)
+				m.runner, m.llmClient, m.cfg, m.log.With("variation", variation.Label))
 		}(i, v)
 	}
 
@@ -219,7 +221,7 @@ func (m *Module) generateReport(
 	resultsJSON, _ := json.MarshalIndent(results, "", "  ")
 	aiAnalysis, cmpTokens, err := report.SummarizeComparison(ctx, m.llmClient, string(resultsJSON), analysisGoal, intentSummary)
 	if err != nil {
-		slog.Warn("[ParamAnalysis] LLM 对比分析失败", "err", err)
+		m.log.Warn("[ParamAnalysis] LLM 对比分析失败", "err", err)
 		aiAnalysis = fmt.Sprintf("*LLM 对比分析失败: %v*", err)
 	}
 	sections = append(sections, report.Section{

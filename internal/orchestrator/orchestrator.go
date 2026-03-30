@@ -96,7 +96,7 @@ func (o *Orchestrator) RunWithConfig(ctx context.Context, cfg RunConfig) error {
 		var err error
 		state, err = session.LoadFromFile(o.cfg.Session.OutputDir, cfg.ResumeID)
 		if err != nil {
-			slog.Warn("[Orch] 恢复会话失败，新建会话", "err", err)
+			slog.Warn("[Orch] 恢复会话失败，新建会话", "err", err) // sessionLog 此时尚未创建
 		} else {
 			ui.PrintInfo(fmt.Sprintf("已恢复会话: %s (上次阶段: %s)", cfg.ResumeID, state.Phase))
 		}
@@ -124,7 +124,8 @@ func (o *Orchestrator) RunWithConfig(ctx context.Context, cfg RunConfig) error {
 	}
 	state.UserInput = cfg.UserInput
 
-	slog.Info("[Orch] 会话开始", "session_id", state.SessionID, "phase", state.Phase)
+	sessionLog := slog.With("session_id", state.SessionID)
+	sessionLog.Info("[Orch] 会话开始", "phase", state.Phase)
 
 	// ── 初始化 MCP Server 连接（连接失败不阻断流程）──────────────────────
 	if state.Phase == session.PhaseIntentCollection || state.Phase == session.PhaseYAMLGenerating {
@@ -132,7 +133,7 @@ func (o *Orchestrator) RunWithConfig(ctx context.Context, cfg RunConfig) error {
 		mcpCtx, mcpCancel := context.WithTimeout(ctx, time.Duration(o.cfg.MCP.InitTimeoutSec)*time.Second)
 		if err := o.mcpClient.Initialize(mcpCtx); err != nil {
 			ui.PrintWarning("MCP Server 连接失败（继续运行）")
-			slog.Warn("[Orch] MCP 初始化失败", "err", err)
+			sessionLog.Warn("[Orch] MCP 初始化失败", "err", err)
 		} else {
 			ui.PrintSuccess("MCP Server 连接成功")
 			_ = o.mcpClient.ClearAll(ctx)
@@ -149,23 +150,23 @@ func (o *Orchestrator) RunWithConfig(ctx context.Context, cfg RunConfig) error {
 	}
 
 	// ── 构建 PhaseModule 列表 ────────────────────────────────────────────
-	modules := o.buildModules(cfg)
+	modules := o.buildModules(cfg, sessionLog)
 
 	// ── 执行各阶段 ───────────────────────────────────────────────────────
 	for _, mod := range modules {
 		// 跳过已完成的阶段
 		if !shouldRunPhase(state.Phase, session.Phase(mod.Name())) {
-			slog.Debug("[Orch] 跳过已完成阶段", "phase", mod.Name())
+			sessionLog.Debug("[Orch] 跳过已完成阶段", "phase", mod.Name())
 			continue
 		}
 
 		// 跳过用户禁用的阶段
 		if cfg.SkipReport && mod.Name() == string(session.PhaseReportReading) {
-			slog.Info("[Orch] 跳过报告阶段（用户设置）")
+			sessionLog.Info("[Orch] 跳过报告阶段（用户设置）")
 			continue
 		}
 		if cfg.SkipParam && mod.Name() == string(session.PhaseParamAnalysis) {
-			slog.Info("[Orch] 跳过参数分析阶段（用户设置）")
+			sessionLog.Info("[Orch] 跳过参数分析阶段（用户设置）")
 			continue
 		}
 
@@ -181,6 +182,7 @@ func (o *Orchestrator) RunWithConfig(ctx context.Context, cfg RunConfig) error {
 		}
 
 		// 执行阶段
+		phaseStart := time.Now()
 		state.Phase = session.Phase(mod.Name())
 		if err := mod.Run(ctx, state); err != nil {
 			if ctx.Err() != nil {
@@ -199,13 +201,18 @@ func (o *Orchestrator) RunWithConfig(ctx context.Context, cfg RunConfig) error {
 			return fmt.Errorf("阶段 %s 失败: %w", mod.Name(), err)
 		}
 
-		// 阶段完成后打印 token 消耗汇总
+		// 阶段完成后打印 token 消耗汇总 + 结构化事件
 		phaseTokens := state.PhaseTokens[session.Phase(mod.Name())]
 		logger.TokenSummary(mod.Name(), phaseTokens, state.TotalTokens)
+		sessionLog.Info("phase_completed",
+			"phase", mod.Name(),
+			"duration_sec", time.Since(phaseStart).Seconds(),
+			"tokens", phaseTokens,
+			"total_tokens", state.TotalTokens,
+		)
 
 		// 阶段完成后持久化状态
 		_ = state.SaveToFile(o.cfg.Session.OutputDir)
-		slog.Info("[Orch] 阶段完成", "phase", mod.Name())
 	}
 
 	// ── 展示最终结果 ─────────────────────────────────────────────────────
@@ -215,8 +222,7 @@ func (o *Orchestrator) RunWithConfig(ctx context.Context, cfg RunConfig) error {
 	totalDuration := state.TotalDuration().Round(time.Second).String()
 	ui.PrintFinalResult(state.YAMLPath, state.IDFPath, state.SimOutDir, state.ReportPath, totalDuration)
 
-	slog.Info("[Orch] 会话完成",
-		"session_id", state.SessionID,
+	sessionLog.Info("[Orch] 会话完成",
 		"total_duration", totalDuration,
 		"yaml_path", state.YAMLPath,
 		"idf_path", state.IDFPath,
@@ -228,7 +234,7 @@ func (o *Orchestrator) RunWithConfig(ctx context.Context, cfg RunConfig) error {
 }
 
 // buildModules 按顺序构建所有 PhaseModule
-func (o *Orchestrator) buildModules(runCfg RunConfig) []session.PhaseModule {
+func (o *Orchestrator) buildModules(runCfg RunConfig, sessionLog *slog.Logger) []session.PhaseModule {
 	// 使用自定义 EPW 覆盖 config（不修改全局 config）
 	cfgCopy := *o.cfg
 	if runCfg.EPWPath != "" {
@@ -237,12 +243,18 @@ func (o *Orchestrator) buildModules(runCfg RunConfig) []session.PhaseModule {
 	cfg := &cfgCopy
 
 	return []session.PhaseModule{
-		intent.NewCollectModule(o.llmClient, o.retriever, o.skillLoader, cfg),
-		intent.NewGenerateModule(o.llmClient, cfg),
-		idfconvert.New(o.runner, o.llmClient, cfg),
-		simulation.New(o.runner, o.llmClient, cfg),
-		report.New(o.llmClient, cfg),
-		paramanalysis.New(o.runner, o.llmClient, cfg, runCfg.AnalysisGoal),
+		intent.NewCollectModule(o.llmClient, o.retriever, o.skillLoader, cfg,
+			sessionLog.With("phase", "intent_collection")),
+		intent.NewGenerateModule(o.llmClient, cfg,
+			sessionLog.With("phase", "yaml_generating")),
+		idfconvert.New(o.runner, o.llmClient, cfg,
+			sessionLog.With("phase", "idf_converting")),
+		simulation.New(o.runner, o.llmClient, cfg,
+			sessionLog.With("phase", "simulation")),
+		report.New(o.llmClient, cfg,
+			sessionLog.With("phase", "report")),
+		paramanalysis.New(o.runner, o.llmClient, cfg, runCfg.AnalysisGoal,
+			sessionLog.With("phase", "param_analysis")),
 	}
 }
 

@@ -28,14 +28,16 @@ import (
 
 // Module Phase 3 YAML→IDF 转换模块
 type Module struct {
+	log       *slog.Logger
 	runner    *eplusrun.Runner
 	llmClient *llm.Client
 	cfg       *config.Config
 }
 
 // New 创建 Phase 3 模块
-func New(runner *eplusrun.Runner, llmClient *llm.Client, cfg *config.Config) *Module {
+func New(runner *eplusrun.Runner, llmClient *llm.Client, cfg *config.Config, log *slog.Logger) *Module {
 	return &Module{
+		log:       log,
 		runner:    runner,
 		llmClient: llmClient,
 		cfg:       cfg,
@@ -66,7 +68,7 @@ func (m *Module) Run(ctx context.Context, state *session.SessionState) error {
 
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
 		if attempt > 1 {
-			slog.Info("[IDF Convert] 自愈重试", "attempt", attempt, "max", maxAttempts)
+			m.log.Info("[IDF Convert] 自愈重试", "attempt", attempt, "max", maxAttempts)
 			ui.PrintInfo(fmt.Sprintf("YAML→IDF 修复重试 (%d/%d)...", attempt, maxAttempts))
 		}
 
@@ -76,21 +78,21 @@ func (m *Module) Run(ctx context.Context, state *session.SessionState) error {
 			state.IDFPath = idfPath
 			state.AddIDFSnapshot(fmt.Sprintf("idf_v%d", attempt), idfPath, "")
 			ui.PrintSuccess(fmt.Sprintf("IDF 文件已生成: %s", idfPath))
-			slog.Info("[IDF Convert] 转换成功", "idf_path", idfPath, "attempts", attempt)
+			m.log.Info("[IDF Convert] 转换成功", "idf_path", idfPath, "attempts", attempt)
 			return nil
 		}
 
 		lastErr = err
-		slog.Warn("[IDF Convert] 转换失败，尝试 LLM 修复", "err", err, "attempt", attempt)
+		m.log.Warn("[IDF Convert] 转换失败，尝试 LLM 修复", "err", err, "attempt", attempt)
 
 		if fault.IsFatal(err) {
-			slog.Error("[IDF Convert] 检测到环境致命错误，终止重试", "err", err)
+			m.log.Error("[IDF Convert] 检测到环境致命错误，终止重试", "err", err)
 			ui.PrintError("检测到环境配置问题（如 Python 未安装），修复 YAML 无法解决此类错误。\n请检查 Python 环境或在 config.yaml 中设置 session.python_path。")
 			return fmt.Errorf("环境配置错误（无法自动修复）: %w", err)
 		}
 
 		if spinning, hint := guard.Observe(err.Error()); spinning {
-			slog.Warn("[IDF Convert] 检测到修复空转，终止重试", "hint", hint)
+			m.log.Warn("[IDF Convert] 检测到修复空转，终止重试", "hint", hint)
 			ui.PrintWarning(hint)
 			break
 		}
@@ -103,7 +105,7 @@ func (m *Module) Run(ctx context.Context, state *session.SessionState) error {
 		fixedYAML, healTokens, fixErr := m.healWithLLM(ctx, state, currentYAML, err.Error())
 		state.AddTokens(healTokens)
 		if fixErr != nil {
-			slog.Warn("[IDF Convert] LLM 修复失败", "err", fixErr)
+			m.log.Warn("[IDF Convert] LLM 修复失败", "err", fixErr)
 			break
 		}
 
@@ -112,7 +114,7 @@ func (m *Module) Run(ctx context.Context, state *session.SessionState) error {
 		fixedPath := filepath.Join(m.cfg.Session.OutputDir, "yaml",
 			stem, fmt.Sprintf("v%d_healed.yaml", attempt))
 		if writeErr := writeYAMLFile(fixedPath, fixedYAML); writeErr != nil {
-			slog.Warn("[IDF Convert] 写入修复 YAML 失败", "err", writeErr)
+			m.log.Warn("[IDF Convert] 写入修复 YAML 失败", "err", writeErr)
 			break
 		}
 
