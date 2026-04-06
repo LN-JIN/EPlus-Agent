@@ -1,0 +1,10 @@
+services:
+  eplus-agent:
+    build: .
+    env_file: .env
+    volumes:
+      - ./output:/app/output      # 模拟结果、会话状态、报告持久化
+      - ./logs:/app/logs          # 运行日志持久化
+      - ./weather:/app/weather    # 各城市 EPW 气象文件（按需挂载）
+    stdin_open: true
+    tty: true

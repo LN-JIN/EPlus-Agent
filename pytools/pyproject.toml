@@ -1,0 +1,45 @@
+[project]
+name = "energyplus-pytools"
+version = "0.1.0"
+description = "EnergyPlus Python CLI tools (YAML→IDF conversion, simulation, IDF read/write)"
+requires-python = ">=3.12"
+dependencies = [
+    "eppy>=0.5.63",
+    "loguru>=0.7.3",
+    "numpy>=2.3.4",
+    "omegaconf>=2.3.0",
+    "pydantic>=2.11.7",
+    "python-dateutil>=2.9.0.post0",
+    "pyyaml>=6.0.2",
+    "scipy>=1.16.2",
+    "trimesh>=4.9.0",
+    "typer>=0.20.1",
+]
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "W",
+    "F",
+    "I",
+    "B",
+    "C4",
+    "UP",
+    "SIM",
+    "RUF",
+    "N",
+]
+
+ignore = [
+    "E501", # Line too long
+    "N805",
+    "N806"
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = true

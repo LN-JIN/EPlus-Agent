@@ -107,6 +107,15 @@ func Load(path string) (*Config, error) {
 	if v := os.Getenv("MCP_BASE_URL"); v != "" {
 		cfg.MCP.BaseURL = v
 	}
+	if v := os.Getenv("SESSION_SIMULATION_SCRIPT"); v != "" {
+		cfg.Session.SimulationScript = v
+	}
+	if v := os.Getenv("SESSION_EPW_PATH"); v != "" {
+		cfg.Session.EPWPath = v
+	}
+	if v := os.Getenv("SESSION_PYTHON_PATH"); v != "" {
+		cfg.Session.PythonPath = v
+	}
 
 	// 设置合理的默认值
 	if cfg.LLM.TimeoutSec <= 0 {

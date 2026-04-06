@@ -68,19 +68,19 @@ func (g *SameErrorGuard) Reset() {
 // ── 内部辅助 ──────────────────────────────────────────────────────────────────
 
 var (
-	reWinPath = regexp.MustCompile(`[A-Za-z]:\\[^\s]+`)
+	reWinPath  = regexp.MustCompile(`[A-Za-z]:\\[^\s]+`)
 	reUnixPath = regexp.MustCompile(`(?:^|[\s(])/[^\s)]+`)
-	reNumbers  = regexp.MustCompile(`\b\d{6,}\b`)         // 6+ 位纯数字（会话 ID 等）
-	reLineCol  = regexp.MustCompile(`\b(?:line|column)\s+\d+`)
+	reFloat    = regexp.MustCompile(`\b\d+\.\d+\b`) // 浮点数（需先于整数规则处理）
+	reNumbers  = regexp.MustCompile(`\b\d+\b`)       // 所有整数（含行号、短 ID 等）
 )
 
-// normalizeErrorMsg 去除错误消息中的变量部分（路径、行号、大数字），
+// normalizeErrorMsg 去除错误消息中的变量部分（路径、行号、数值），
 // 使相同类型的错误产生相同指纹。
 func normalizeErrorMsg(msg string) string {
 	msg = reWinPath.ReplaceAllString(msg, "<PATH>")
 	msg = reUnixPath.ReplaceAllString(msg, " <PATH>")
+	msg = reFloat.ReplaceAllString(msg, "<F>")   // 先替换浮点，避免被整数规则拆分为两段
 	msg = reNumbers.ReplaceAllString(msg, "<N>")
-	msg = reLineCol.ReplaceAllString(msg, "line N")
 	return strings.ToLower(strings.TrimSpace(msg))
 }
 

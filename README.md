@@ -21,12 +21,11 @@
 
 <br>
 
-本项目由两部分协作组成：
 
-| 项目 | 语言 | 职责 |
+| 模块 | 语言 | 职责 |
 |------|------|------|
-| **EPlus-Agent**（本仓库） | Go | LLM 编排、业务流程、会话管理、报告生成 |
-| **EPlus-MCP** | Python | EnergyPlus 工具服务（YAML→IDF 转换、仿真执行、IDF 读写）  |
+| **EPlus-Agent**（Go，`cmd/` / `internal/`） | Go | LLM 编排、业务流程、会话管理、报告生成 |
+| **pytools/**（内嵌 Python CLI） | Python | EnergyPlus 工具（YAML→IDF 转换、仿真执行、IDF 读写）  |
 
 <br>
 
@@ -35,7 +34,7 @@
 
 > 当前版本需要继续进行系统性量化验证，引入标准测试集，并开展多 LLM 对比实验，以提供更客观的参考依据。
 
-> EPlus-MCP来自仓库 https://github.com/ITOTI-Y/EnergyPlus-Agent ，该项目提供 MCP 服务，但尚未实现 Agent，期待其下一步实现 。
+> `pytools/` 的转换器代码来源于 [EnergyPlus-Agent](https://github.com/ITOTI-Y/EnergyPlus-Agent)，整合时仅保留 CLI 工具部分，去除了 MCP 协议服务器。
 
 ---
 <br>
@@ -150,9 +149,8 @@
 └───────────────────────────────────────────────────────────┘
         │                        │
         ▼                        ▼
-  LLM API                  EPlus-MCP 
-  (OpenAI 兼容)             
-                                 │
+  LLM API                  pytools/（内嵌 Python CLI）
+  (OpenAI 兼容)                  │
                                  ▼
                           EnergyPlus 仿真引擎
 ```
@@ -226,14 +224,48 @@
 
 ## 快速开始
 
-### 前置条件
+### 方式一：本地运行
 
 | 依赖 | 版本 | 说明 |
 |------|------|------|
 | Go | 1.22+ | 主程序编译运行 |
-| Python | 3.10+ | EPlus-MCP 工具服务 |
+| Python | 3.12+ | pytools/ CLI 工具 |
+| uv | 最新 | Python 依赖管理（`pip install uv`） |
 | EnergyPlus | 25.1.0 | 仿真引擎（需加入 PATH） |
-| LLM API | — | —— |
+| LLM API | — | 兼容 OpenAI Chat Completions 格式 |
+
+```bash
+# 安装 Python 依赖
+cd pytools && uv sync && cd ..
+
+# 复制并填写配置
+cp configs/config.yaml.example configs/config.yaml
+# 编辑 configs/config.yaml，填入 LLM API Key 和本地路径
+
+# 运行
+go run cmd/main.go -input "深圳 5 层办公楼"
+```
+
+### 方式二：Docker 部署
+
+| 依赖 | 版本 | 说明 |
+|------|------|------|
+| Docker | 20.10+ | 容器运行时 |
+| Docker Compose | v2+ | 编排工具 |
+| LLM API | — | 兼容 OpenAI Chat Completions 格式 |
+
+```bash
+# 1. 准备气象文件（放入 weather/ 目录）
+mkdir -p weather
+# 将 Shenzhen.epw 等 EPW 文件复制到 weather/
+
+# 2. 配置环境变量
+cp .env.example .env
+# 编辑 .env，填入 LLM_API_KEY 和 SESSION_EPW_PATH
+
+# 3. 构建并运行
+docker compose run --rm eplus-agent -input "深圳 5 层办公楼"
+```
 
 <br>
 
@@ -315,8 +347,6 @@ EPlus-Agent/
 ├── configs/
 │   ├── config.yaml.example       # 配置模板（安全，可提交）
 │   └── config.yaml               # 本地配置（含密钥，已 gitignore）
-├── docs/
-│   └── ARCHITECTURE.md           # 详细技术架构文档
 ├── internal/
 │   ├── config/                   # 配置加载与环境变量覆盖
 │   ├── intent/                   # Phase 1-2：意图收集与 YAML 生成
@@ -329,12 +359,23 @@ EPlus-Agent/
 │   ├── orchestrator/             # 主流程编排
 │   ├── session/                  # 会话状态与 PhaseModule 接口
 │   ├── rag/                      # RAG 问答（向量检索、BM25、HyDE、RRF）
-│   │   └── vectorstore/          # 向量库加载与检索
 │   ├── llm/                      # LLM 客户端（OpenAI 兼容 + SSE 流）
-│   ├── eplusrun/                 # EPlus-MCP 子进程封装
+│   ├── eplusrun/                 # pytools 子进程封装
 │   ├── fault/                    # 错误分类与重试策略
 │   ├── logger/                   # 双输出结构化日志
 │   └── ui/                       # 终端交互与彩色输出
+├── pytools/                      # 内嵌 Python 工具（YAML→IDF、仿真、IDF 读写）
+│   ├── main.py                   # CLI 入口（typer）
+│   ├── pyproject.toml            # Python 依赖声明
+│   └── src/
+│       ├── converter_manager.py  # 转换流程编排
+│       ├── converters/           # 各 EnergyPlus 对象转换器（12 个）
+│       ├── runner/               # EnergyPlus 仿真执行器
+│       ├── validator/            # Pydantic 数据模型与校验
+│       └── utils/                # 日志工具
+├── Dockerfile                    # 多阶段 Docker 构建
+├── docker-compose.yml            # Docker Compose 部署配置
+├── .env.example                  # 环境变量模板（含 LLM 和 EPW 配置）
 └── output/                       # 生成文件（gitignore）
 ```
 
@@ -344,21 +385,21 @@ EPlus-Agent/
 
 ## 依赖说明
 
-### EPlus-MCP
+### pytools（内嵌 Python CLI）
 
-EPlus-MCP 是本项目的 Python 工具后端，提供：
-- `convert-idf` — 将 YAML 配置转换为 EnergyPlus IDF 文件
-- `run-simulation` — 调用 EnergyPlus 执行仿真
-- `edit-idf` / `read-idf` — IDF 对象读写（基于 eppy）
-- `validate-idf` — IDF 合法性验证
+`pytools/` 是项目内嵌的 Python 工具集，提供以下 CLI 子命令（由 Go 通过子进程调用）：
 
-MCP调用时出现了一些异常（尚未解决），目前EPlus-Agent 不得不通过子进程调用 `python main.py <command>`，以 stdout 传递结果。后续会修正。
+| 命令 | 功能 |
+|------|------|
+| `convert-idf` | 将 YAML 配置转换为 EnergyPlus IDF 文件 |
+| `run-simulation` | 调用 EnergyPlus 执行仿真 |
+| `edit-idf` | 修改 IDF 对象字段（基于 eppy） |
+| `read-idf` | 读取 IDF 对象字段（基于 eppy） |
+| `validate-idf` | IDF 合法性验证 |
 
-### LLM API
+Go 端通过 `internal/eplusrun/runner.go` 以子进程方式调用 `pytools/main.py`，结果经 stdout 标记行（如 `IDF_OUTPUT: <path>`）传递。
 
-本项目使用兼容 OpenAI Chat Completions 接口的 LLM 服务。默认配置为 **阿里云 DashScope（通义千问）**，也支持任何兼容 OpenAI 格式的服务（OpenAI、Azure OpenAI、本地 Ollama 等）。
 
----
 <br>
 
 ## License
